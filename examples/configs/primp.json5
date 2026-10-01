@@ -1,7 +1,7 @@
 // Example config file for pretty-ts-imports
 //
-// This one mostly uses the default import settings but also includes an example
-// for custom compare functions.
+// Explicitly opt in to the 2022 import order, grouping and formatting,
+// plus a custom comparator. The new defaults follow deno fmt.
 {
   sortImports: [
     // These are the compare functions used to sort the imports.
@@ -49,7 +49,9 @@
     //quoteStyle: "single", // "single" is also possible.
     quoteStyle: "double",
     // The maximum column width, primp tries to not exceed this
-    maxColumns: 80
+    maxColumns: 80,
+    trailingComma: false, // Deno normally adds a trailing comma on multiline imports.
+    breakFrom: true // Restore the old overflowing `from` layout.
   },
   require: {
     // If you need more compare functions than provided you can require them

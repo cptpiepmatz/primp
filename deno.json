@@ -1,0 +1,43 @@
+{
+  "name": "@cptpiepmatz/pretty-ts-imports",
+  "version": "2.0.0",
+  "nodeModulesDir": "auto",
+  "exports": {
+    ".": "./mod.ts",
+    "./cli": "./cli.ts"
+  },
+  "imports": {
+    "typescript": "npm:typescript@^6.0.0",
+    "json5": "npm:json5@^2.2.3",
+    "yaml": "npm:yaml@^2.8.1",
+    "smol-toml": "npm:smol-toml@^1.9.0",
+    "yargs": "npm:yargs@^18.2.0",
+    "@types/yargs": "npm:@types/yargs@^17.0.35"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": false
+  },
+  "tasks": {
+    "check": "deno check",
+    "test": "deno task test:*",
+    "test:deno": "deno test --allow-read --allow-write --allow-env tests/**/*.test.ts",
+    "test:node": "node --test tests/**/*.test.{m,c}js",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "docs": "deno doc --html --output=docs mod.ts",
+    "cli": "deno run --allow-read --allow-write --allow-env cli.ts"
+  },
+  "publish": {
+    "exclude": [
+      ".git",
+      ".github/",
+      "opencode.jsonc",
+      "MODERNIZATION.md",
+      "tests/",
+      "examples/",
+      "docs/",
+      "icon/"
+    ]
+  }
+}

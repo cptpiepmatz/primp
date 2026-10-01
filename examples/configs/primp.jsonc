@@ -1,4 +1,5 @@
 {
+  // Same legacy-style example as the other formats; JSONC permits comments and trailing commas.
   "sortImports": [
     "!sideEffect",
     "sourceType",
@@ -7,11 +8,7 @@
     "pathName",
     "sourceName"
   ],
-  "sortImportElements": [
-    "elementType",
-    "basenameGroup",
-    "elementName"
-  ],
+  "sortImportElements": ["elementType", "basenameGroup", "elementName"],
   "separateBy": [
     "unequalSideEffectUse",
     "unequalPackageState",

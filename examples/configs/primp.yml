@@ -1,7 +1,7 @@
 # Example config file for pretty-ts-imports
 #
-# This one mostly uses the default import settings but also includes an example
-# for custom compare functions.
+# Explicitly opt in to the old import order, grouping and formatting,
+# plus a custom comparator. The new defaults follow deno fmt.
 sortImports:
   # These are the compare functions used to sort the imports.
   #
@@ -9,13 +9,13 @@ sortImports:
   # doesn't return 0, therefore the order is important.
   # To always have the same expected result, at least the last function
   # should possible never return 0.
-  - !sideEffect
+  - "!sideEffect"
   - sourceType
   - dotJSFirst
-  - !namespacePresence
+  - "!namespacePresence"
   - pathName
   - sourceName
-sortImportElement:
+sortImportElements:
   # These are the compare functions used to sort each imported element
   # inside an import statement.
   # Because of TS's limitations only named imports (the ones inside the
@@ -40,6 +40,8 @@ formatting:
   bracketIndent: 0 # Spaces used at the start and end of import brackets.
   quoteStyle: double # How the source should be quoted.
   maxColumns: 80 # The maximum column width, primp tries to not exceed this
+  trailingComma: false # Restore the old multiline import style.
+  breakFrom: true # Restore the old overflowing `from` layout.
 require:
   # If you need more compare functions than provided you can require them
   # here.

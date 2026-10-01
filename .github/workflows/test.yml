@@ -1,21 +1,31 @@
 name: test
-on: [push]
+on: [push, pull_request]
 jobs:
-  ubuntu:
+  deno:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task check
+      - run: deno task lint
+      - run: deno fmt --check mod.ts cli.ts src/core.ts src/rules.ts src/configuration.ts src/files.ts tests/ deno.json README.md MODERNIZATION.md
+      - run: deno task test
+      - run: deno test --config tests/ts-5.3.json --no-lock --allow-read --allow-write --allow-env tests/behavior.test.ts
+      - run: deno publish --dry-run --allow-dirty
+  node:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "16"
-      - run: npm ci
-      - run: npm run test
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+          node-version: "22"
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: "16"
-      - run: npm ci
-      - run: npm run test
+          deno-version: v2.x
+      - run: deno install --frozen-lockfile
+      - run: deno task test:node

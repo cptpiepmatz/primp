@@ -1,0 +1,378 @@
+import ts from "typescript";
+import type { SourceFile } from "typescript";
+
+/** Options for formatting rendered import declarations. */
+export interface FormattingOptions {
+  /**
+   * Number of spaces used to indent wrapped imports.
+   *
+   * Defaults to 2; also applies to an optionally wrapped `from` clause.
+   */
+  indent?: number;
+  /**
+   * Spaces inside single-line named-import braces.
+   *
+   * Defaults to 1.
+   */
+  bracketIndent?: number;
+  /**
+   * Quote style for module specifiers.
+   *
+   * Defaults to `"double"`.
+   */
+  quoteStyle?: "double" | "single";
+  /**
+   * Target line width before wrapping named specifiers.
+   *
+   * Defaults to 80.
+   */
+  maxColumns?: number;
+  /**
+   * Whether multiline named imports have a trailing comma.
+   *
+   * Defaults to true.
+   */
+  trailingComma?: boolean;
+  /**
+   * Whether to wrap an overflowing `from` clause.
+   *
+   * Defaults to false.
+   */
+  breakFrom?: boolean;
+}
+
+/** A binding on the left side of an import declaration. */
+export interface ImportElement {
+  /** Local binding, e.g. `local` in `import { remote as local }`. */
+  name: string;
+  /** Imported name before `as`, or `*` for a namespace import. */
+  originalName?: string;
+  /** Whether this is the default binding, held separately in {@link Import.defaultElement}. */
+  isDefault: boolean;
+  /** Whether this is a namespace (`* as name`) binding. */
+  isWildcard: boolean;
+  /** Whether an `as` binding was used (also true for namespace imports). */
+  isRenamed: boolean;
+  /**
+   * Whether the imported name starts with an uppercase letter.
+   *
+   * This is a sorting heuristic, not a check of TypeScript's type namespace.
+   */
+  isType: boolean;
+  /**
+   * Whether the imported name does not start with an uppercase letter.
+   *
+   * This is the complement of {@link ImportElement.isType}.
+   */
+  isFunctionOrObject: boolean;
+  /** Whether this named specifier uses the inline `type` modifier. */
+  isTypeOnly?: boolean;
+}
+
+/** The module specifier on the right side of an import declaration. */
+export interface ImportSource {
+  /** Unquoted module specifier, e.g. `./file.ts` or `package`. */
+  name: string;
+  /** Whether the specifier is not relative, including `node:` specifiers. */
+  isPackage: boolean;
+  /** Whether the specifier begins with `./` or `../`. */
+  isRelative: boolean;
+}
+
+const defaults: Required<FormattingOptions> = {
+  indent: 2,
+  bracketIndent: 1,
+  quoteStyle: "double",
+  maxColumns: 80,
+  trailingComma: true,
+  breakFrom: false,
+};
+
+function element(
+  name: string,
+  originalName?: string,
+  isDefault = false,
+  isTypeOnly = false,
+): ImportElement {
+  const isType = /^[A-Z]/.test(originalName ?? name);
+  return {
+    name,
+    originalName,
+    isDefault,
+    isWildcard: originalName === "*",
+    isRenamed: originalName !== undefined,
+    isType,
+    isFunctionOrObject: !isType,
+    isTypeOnly,
+  };
+}
+
+/** A sortable representation of a TypeScript import declaration. */
+export class Import {
+  /** Imported module and its package/relative classification. */
+  readonly source: ImportSource;
+  /** Named specifiers or a namespace binding, excluding the default binding. */
+  readonly elements: ImportElement[] = [];
+  /** Default binding, if present. */
+  readonly defaultElement?: ImportElement;
+  /** Whether the entire declaration uses `import type`. */
+  readonly isTypeOnly: boolean;
+  /** Whether the declaration uses `* as name`. */
+  readonly isNamespace: boolean;
+  /** Whether the declaration uses named braces (including empty braces). */
+  readonly isNamed: boolean;
+  /** Original `with` or `assert` import attributes, if present. */
+  readonly attributes: string;
+  /** Start offset of the import declaration in its source file. */
+  readonly start: number;
+  /** End offset of the import declaration in its source file. */
+  readonly end: number;
+
+  /**
+   * Read an import declaration from the TypeScript syntax tree.
+   *
+   * Extract its source, bindings, import attributes, and source offsets.
+   *
+   * @param declaration Import declaration to model.
+   * @param sourceFile Source file containing the declaration.
+   */
+  constructor(declaration: ts.ImportDeclaration, sourceFile: ts.SourceFile) {
+    this.start = declaration.getStart(sourceFile);
+    this.end = declaration.end;
+    const name = (declaration.moduleSpecifier as ts.StringLiteral).text;
+    const isRelative = name.startsWith("./") || name.startsWith("../");
+    this.source = { name, isRelative, isPackage: !isRelative };
+    const clause = declaration.importClause;
+    this.isTypeOnly = clause?.isTypeOnly ?? false;
+    this.isNamed = clause?.namedBindings?.kind === ts.SyntaxKind.NamedImports;
+    this.isNamespace =
+      clause?.namedBindings?.kind === ts.SyntaxKind.NamespaceImport;
+    this.attributes = declaration.attributes?.getText(sourceFile) ?? "";
+    if (clause?.name) {
+      this.defaultElement = element(clause.name.text, undefined, true);
+    }
+    if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+      for (const specifier of clause.namedBindings.elements) {
+        this.elements.push(element(
+          specifier.name.text,
+          specifier.propertyName?.text,
+          false,
+          specifier.isTypeOnly,
+        ));
+      }
+    } else if (
+      clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)
+    ) {
+      this.elements.push(element(clause.namedBindings.name.text, "*"));
+    }
+  }
+
+  /** Whether this is a side-effect-only import such as `import "module";`. */
+  get isSideEffectOnly(): boolean {
+    return !this.defaultElement && !this.isNamed && !this.isNamespace;
+  }
+
+  /**
+   * Sort this import's elements in place.
+   *
+   * The default binding is held separately and is not sorted.
+   *
+   * @param comparator Function comparing two specifiers.
+   * @returns This import for chaining.
+   */
+  sort(comparator: (a: ImportElement, b: ImportElement) => number): this {
+    this.elements.sort(comparator);
+    return this;
+  }
+
+  /**
+   * Render this import declaration.
+   *
+   * The returned string does not include a final newline.
+   *
+   * @param options Formatting overrides; omitted settings use defaults.
+   * @returns The formatted import declaration.
+   */
+  toString(options: FormattingOptions = {}): string {
+    const {
+      indent,
+      bracketIndent,
+      quoteStyle,
+      maxColumns,
+      trailingComma,
+      breakFrom,
+    } = {
+      ...defaults,
+      ...options,
+    };
+    const quote = quoteStyle === "single" ? "'" : '"';
+    const names: string[] = [];
+    if (this.defaultElement) names.push(this.defaultElement.name);
+    if (this.isNamed) {
+      const specifiers = this.elements.map((e) =>
+        `${e.isTypeOnly ? "type " : ""}${
+          e.originalName ? `${e.originalName} as ` : ""
+        }${e.name}`
+      );
+      names.push(
+        specifiers.length
+          ? `{${" ".repeat(bracketIndent)}${specifiers.join(", ")}${
+            " ".repeat(bracketIndent)
+          }}`
+          : "{}",
+      );
+    }
+    if (this.isNamespace) names.push(`* as ${this.elements[0].name}`);
+    const prefix = `import ${this.isTypeOnly ? "type " : ""}${
+      names.join(", ")
+    }${names.length ? " from " : ""}`;
+    const escapedSource = this.source.name.replaceAll("\\", "\\\\").replaceAll(
+      quote,
+      `\\${quote}`,
+    );
+    let output = `${prefix}${quote}${escapedSource}${quote}${
+      this.attributes ? ` ${this.attributes}` : ""
+    };`;
+    const overflows = () =>
+      output.split("\n").some((line) => line.length > maxColumns);
+    if (overflows() && this.isNamed && this.elements.length > 1) {
+      const start = output.indexOf("{");
+      const end = output.indexOf("}", start);
+      if (start !== -1 && end !== -1) {
+        output = `${output.slice(0, start)}{\n${" ".repeat(indent)}${
+          this.elements.map((e) =>
+            `${e.isTypeOnly ? "type " : ""}${
+              e.originalName ? `${e.originalName} as ` : ""
+            }${e.name}`
+          ).join(`,\n${" ".repeat(indent)}`)
+        }${trailingComma ? "," : ""}\n}${output.slice(end + 1)}`;
+      }
+    }
+    if (breakFrom && overflows()) {
+      output = output.replace(" from ", `\n${" ".repeat(indent)}from `);
+    }
+    return output;
+  }
+}
+
+/**
+ * Parse the leading import block of a TypeScript source file.
+ *
+ * Imports after other statements are left alone. Shebangs and header comments
+ * remain in the source file. Malformed files yield no sortable imports so that
+ * a subsequent integration cannot silently rewrite invalid syntax.
+ *
+ * @param text Complete source text.
+ * @param fileName Name for TypeScript's parser (defaults to `input.ts`).
+ * @returns The source file and mutable import models in their original order.
+ */
+export function parseImports(text: string, fileName = "input.ts"): {
+  sourceFile: SourceFile;
+  imports: Import[];
+} {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const imports: Import[] = [];
+  if (hasParseErrors(sourceFile)) return { sourceFile, imports };
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement)) break;
+    imports.push(new Import(statement, sourceFile));
+  }
+  return { sourceFile, imports };
+}
+
+function hasParseErrors(sourceFile: ts.SourceFile): boolean {
+  return !!(sourceFile as ts.SourceFile & {
+    parseDiagnostics?: readonly ts.Diagnostic[];
+  })
+    .parseDiagnostics?.length;
+}
+
+/** A formatter for reinserting imports into source text. */
+export class ImportIntegrator {
+  private readonly formatting: FormattingOptions;
+
+  /**
+   * Configure the formatting used for inserted imports.
+   *
+   * @param formatting Formatting overrides for inserted imports.
+   */
+  constructor(formatting: FormattingOptions = {}) {
+    this.formatting = formatting;
+  }
+
+  /**
+   * Integrate formatted imports into the source file's text.
+   *
+   * A `null` inserts one blank separator line. Original blank lines survive
+   * between imports that remain adjacent and in order. Files with syntax errors
+   * or comments within the import block are returned unchanged rather than
+   * risking lost or detached comments. This does not write to disk.
+   *
+   * @param sourceFile Source file whose leading imports will be replaced.
+   * @param imports Sorted imports, with `null` marking blank lines.
+   * @returns Source text with the formatted import block integrated.
+   */
+  integrate(sourceFile: SourceFile, imports: (Import | null)[]): string {
+    const first = sourceFile.statements[0];
+    if (hasParseErrors(sourceFile)) return sourceFile.text;
+    if (!first || !ts.isImportDeclaration(first)) return sourceFile.text;
+    let last: ts.ImportDeclaration = first;
+    for (const statement of sourceFile.statements.slice(1)) {
+      if (!ts.isImportDeclaration(statement)) break;
+      last = statement;
+    }
+    const start = first.getStart(sourceFile);
+    // Never discard comments attached to a declaration or between declarations.
+    const scanner = ts.createScanner(
+      ts.ScriptTarget.Latest,
+      false,
+      ts.LanguageVariant.Standard,
+      sourceFile.text.slice(start, last.end),
+    );
+    for (
+      let kind = scanner.scan();
+      kind !== ts.SyntaxKind.EndOfFileToken;
+      kind = scanner.scan()
+    ) {
+      if (
+        kind === ts.SyntaxKind.SingleLineCommentTrivia ||
+        kind === ts.SyntaxKind.MultiLineCommentTrivia
+      ) return sourceFile.text;
+    }
+    const original = sourceFile.statements.filter(ts.isImportDeclaration);
+    const positions = new Map(
+      original.map((node, index) => [node.getStart(sourceFile), index]),
+    );
+    const lines: string[] = [];
+    let previous: Import | undefined;
+    for (const imported of imports) {
+      if (!imported) {
+        lines.push("");
+        continue;
+      }
+      if (previous && lines.at(-1) !== "") {
+        const index = positions.get(previous.start);
+        if (
+          index !== undefined &&
+          original[index + 1]?.getStart(sourceFile) === imported.start
+        ) {
+          const gap = sourceFile.text.slice(previous.end, imported.start);
+          const blankLines = Math.max(
+            0,
+            (gap.match(/\r\n|\n|\r/g)?.length ?? 0) - 1,
+          );
+          for (let i = 0; i < blankLines; i++) lines.push("");
+        }
+      }
+      lines.push(imported.toString(this.formatting));
+      previous = imported;
+    }
+    return sourceFile.text.slice(0, start) + lines.join("\n") +
+      sourceFile.text.slice(last.end);
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "../deno.json",
+  "imports": {
+    "typescript": "npm:typescript@5.3.3",
+    "json5": "npm:json5@^2.2.3",
+    "yaml": "npm:yaml@^2.8.1",
+    "smol-toml": "npm:smol-toml@^1.9.0",
+    "yargs": "npm:yargs@^18.2.0",
+    "@types/yargs": "npm:@types/yargs@^17.0.35"
+  }
+}

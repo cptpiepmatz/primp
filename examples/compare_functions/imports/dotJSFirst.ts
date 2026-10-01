@@ -1,6 +1,4 @@
-import ImportCompareFunction
-  from "../../../src/sort_rules/ImportCompareFunction";
-import Import from "../../../src/import_management/Import";
+import type { ImportCompareFunction } from "../../../mod.ts";
 
 /**
  * Example compare function for imports.
@@ -8,10 +6,7 @@ import Import from "../../../src/import_management/Import";
  * @param importA Import A
  * @param importB Import B
  */
-const dotJSFirst: ImportCompareFunction = function(
-  importA: Import,
-  importB: Import
-): number {
+const dotJSFirst: ImportCompareFunction = function (importA, importB): number {
   const matcher = /\.[Jj][Ss]$/;
   const matchesA = !!importA.source.name.match(matcher);
   const matchesB = !!importB.source.name.match(matcher);
