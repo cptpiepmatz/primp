@@ -47,15 +47,15 @@ test("Node gets Deno-compatible defaults", () => {
   );
 });
 
-test("Node loads a TOML config", () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-toml-node-"));
+test("Node loads a TypeScript config", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "primp-ts-node-"));
   try {
-    const path = join(dir, "primp.toml");
+    const path = join(dir, "primp.config.ts");
     writeFileSync(
       path,
-      'sortImports = ["sourceName"]\n[formatting]\nquoteStyle = "single"\n',
+      'const config: { sortImports: string[]; formatting: { quoteStyle: "single" } } = { sortImports: ["sourceName"], formatting: { quoteStyle: "single" } };\nexport default config;\n',
     );
-    const config = new ConfigHandler(path);
+    const config = await ConfigHandler.load(path);
     assert.deepEqual(config.sortImports, ["sourceName"]);
     assert.equal(config.formatting.quoteStyle, "single");
   } finally {

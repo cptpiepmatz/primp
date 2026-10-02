@@ -13,7 +13,7 @@ import { pathToFileURL } from "node:url";
 import yargs from "yargs";
 
 import metadata from "./deno.json" with { type: "json" };
-import { ConfigHandler, loadRules } from "./src/configuration.ts";
+import { ConfigHandler } from "./src/configuration.ts";
 import { ImportIntegrator } from "./src/core.ts";
 import { FileManager } from "./src/files.ts";
 import { ImportSeparator, ImportSorter } from "./src/rules.ts";
@@ -113,20 +113,19 @@ export async function main(args: string[]): Promise<void> {
   if (!options) return;
   const { input, output } = options;
   const configPath = options.config ?? ConfigHandler.findConfig(input);
-  const config = new ConfigHandler(configPath);
+  const config = await ConfigHandler.load(configPath);
   const files = FileManager.getFiles(
     input,
     options.recursive,
     options.includeJs ?? config.includeJs,
   );
   const paths = Array.isArray(files) ? files : [files];
-  const custom = await loadRules(config, configPath);
   const sorter = new ImportSorter(
     config.sortImports,
     config.sortImportElements,
-    custom,
+    config.rules,
   );
-  const separator = new ImportSeparator(config.separateBy, custom);
+  const separator = new ImportSeparator(config.separateBy, config.rules);
   const integrator = new ImportIntegrator(config.formatting);
   const manager = new FileManager(paths);
   function processFile(path: string): void {

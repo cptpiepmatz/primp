@@ -13,11 +13,11 @@ import { fileURLToPath } from "node:url";
 import {
   builtin,
   ConfigHandler,
+  defineConfig,
   FileManager,
   ImportIntegrator,
   ImportSeparator,
   ImportSorter,
-  loadRules,
   parseImports,
 } from "../mod.ts";
 import type { Import } from "../mod.ts";
@@ -29,7 +29,7 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
       "-rw",
       "--output=out",
       "--config",
-      "primp.json",
+      "primp.config.ts",
       "src",
     ]),
     {
@@ -38,7 +38,7 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
       includeJs: undefined,
       watch: true,
       output: "out",
-      config: "primp.json",
+      config: "primp.config.ts",
     },
   );
   assert.equal(parseCliArgs(["--", "-file.ts"])?.input, "-file.ts");
@@ -113,9 +113,9 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
       ...jsFiles,
     ]);
 
-    const configPath = join(dir, "primp.json");
-    writeFileSync(configPath, '{"includeJs":true}');
-    assert.equal(new ConfigHandler(configPath).includeJs, true);
+    const configPath = join(dir, "primp.config.ts");
+    writeFileSync(configPath, "export default { includeJs: true };");
+    assert.equal((await ConfigHandler.load(configPath)).includeJs, true);
     await main(["--include-js=false", "-r", dir]);
     assert.equal(
       readFileSync(tsFile, "utf8"),
@@ -133,7 +133,7 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
       );
       writeFileSync(file, original);
     }
-    writeFileSync(configPath, '{"includeJs":false}');
+    writeFileSync(configPath, "export default { includeJs: false };");
     await main(["--include-js", "-r", dir]);
     for (const file of jsFiles) {
       assert.equal(
@@ -141,11 +141,6 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
         'import a from "a";\nimport z from "z";\n',
       );
     }
-    writeFileSync(configPath, '{"includeJs":"yes"}');
-    assert.throws(
-      () => new ConfigHandler(configPath),
-      /includeJs must be a boolean/,
-    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -258,14 +253,14 @@ Deno.test("inverted rules, custom rules and invalid rule names", () => {
   );
 });
 
-Deno.test("configuration discovery, validation, file filtering and output newline retention", async () => {
+Deno.test("configuration discovery, file filtering and output newline retention", async () => {
   const dir = mkdtempSync(join(tmpdir(), "primp-"));
   try {
     mkdirSync(join(dir, "nested"));
-    const configPath = join(dir, "primp.json5");
+    const configPath = join(dir, "primp.config.ts");
     writeFileSync(
       configPath,
-      `{ formatting: { quoteStyle: 'single' }, sortImports: ['sourceName'], sortImportElements: [], separateBy: [] }`,
+      `export default { formatting: { quoteStyle: 'single' }, sortImports: ['sourceName'], sortImportElements: [], separateBy: [] };`,
     );
     const file = join(dir, "nested", "sample.ts");
     writeFileSync(file, `import b from "b";\r\nimport a from "a";\r\n`);
@@ -280,14 +275,12 @@ Deno.test("configuration discovery, validation, file filtering and output newlin
       `import a from 'a';\r\nimport b from 'b';\r\n`,
     );
     assert.match(readFileSync(file, "utf8"), /import b/);
-    writeFileSync(configPath, `{ sortImports: 42 }`);
-    assert.throws(() => new ConfigHandler(configPath), /array/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-Deno.test("YAML config and ESM comparator loaded relative to config", async () => {
+Deno.test("TypeScript config imports a comparator relative to its own file", async () => {
   const dir = mkdtempSync(join(tmpdir(), "primp-rules-"));
   try {
     const rulePath = join(dir, "reverse.mjs");
@@ -295,10 +288,10 @@ Deno.test("YAML config and ESM comparator loaded relative to config", async () =
       rulePath,
       "export default (a, b) => b.source.name.localeCompare(a.source.name);\n",
     );
-    const configPath = join(dir, "primp.yaml");
+    const configPath = join(dir, "primp.config.ts");
     writeFileSync(
       configPath,
-      "sortImports: [reverse]\nsortImportElements: []\nseparateBy: []\nrequire:\n  reverse: ./reverse.mjs\n",
+      'import reverse from "./reverse.mjs";\nexport default { sortImports: ["reverse"], sortImportElements: [], separateBy: [], rules: { reverse } };\n',
     );
     const file = join(dir, "file.ts");
     writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
@@ -312,25 +305,37 @@ Deno.test("YAML config and ESM comparator loaded relative to config", async () =
   }
 });
 
-Deno.test("JSONC and TOML configs are discovered and used by the CLI", async () => {
-  const root = mkdtempSync(join(tmpdir(), "primp-formats-"));
+Deno.test("inline TypeScript rules are passed to the sorter", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "primp-inline-rule-"));
   try {
-    for (
-      const [extension, content] of [
-        [
-          "jsonc",
-          '{ // comment\n "sortImports": ["sourceName",], "formatting": {"quoteStyle": "single",}, }',
-        ],
-        [
-          "toml",
-          'sortImports = ["sourceName"]\n[formatting]\nquoteStyle = "single"\n',
-        ],
-      ]
-    ) {
-      const project = join(root, extension);
+    const configPath = join(dir, "primp.config.ts");
+    writeFileSync(
+      configPath,
+      'export default { sortImports: ["reverse"], sortImportElements: [], separateBy: [], rules: { reverse: (a: { source: { name: string } }, b: { source: { name: string } }) => b.source.name.localeCompare(a.source.name) } };',
+    );
+    const file = join(dir, "file.ts");
+    writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
+    await main([file]);
+    assert.equal(
+      readFileSync(file, "utf8"),
+      'import b from "b";\nimport a from "a";\n',
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+Deno.test("TypeScript configs are discovered and explicit paths work", async () => {
+  const root = mkdtempSync(join(tmpdir(), "primp-configs-"));
+  try {
+    for (const name of ["primp", "pretty-ts-imports", "prettytsimports"]) {
+      const project = join(root, name);
       mkdirSync(project);
-      const configPath = join(project, `primp.${extension}`);
-      writeFileSync(configPath, content);
+      const configPath = join(project, `${name}.config.ts`);
+      writeFileSync(
+        configPath,
+        'export default { sortImports: ["sourceName"], formatting: { quoteStyle: "single" } };',
+      );
       const source = join(project, "input.ts");
       writeFileSync(source, 'import b from "b";\nimport a from "a";\n');
       assert.equal(ConfigHandler.isSupportedConfigFile(configPath), true);
@@ -340,55 +345,42 @@ Deno.test("JSONC and TOML configs are discovered and used by the CLI", async () 
         readFileSync(source, "utf8"),
         "import a from 'a';\nimport b from 'b';\n",
       );
-      writeFileSync(
-        configPath,
-        extension === "toml"
-          ? 'sortImports = ["sourceName"'
-          : '{ "sortImports": [ }',
-      );
-      assert.throws(() => new ConfigHandler(configPath));
     }
-    const custom = join(root, "custom.toml");
-    writeFileSync(custom, 'sortImports = ["sourceName"]\n');
+    const custom = join(root, "custom.ts");
+    writeFileSync(custom, 'export default { sortImports: ["sourceName"] };');
     assert.equal(ConfigHandler.isSupportedConfigFile(custom), false);
-    assert.deepEqual(new ConfigHandler(custom).sortImports, ["sourceName"]);
-    assert.equal(ConfigHandler.isSupportedConfigFile("primp.yaml"), true);
+    assert.deepEqual((await ConfigHandler.load(custom)).sortImports, [
+      "sourceName",
+    ]);
+    assert.equal(ConfigHandler.isSupportedConfigFile("primp.config.ts"), true);
+    assert.equal(ConfigHandler.isSupportedConfigFile("primp.json"), false);
+    await assert.rejects(
+      ConfigHandler.load(join(root, "missing.json")),
+      /Unsupported/,
+    );
+    const invalid = join(root, "invalid.ts");
+    writeFileSync(invalid, "export default 42;");
+    await assert.rejects(
+      ConfigHandler.load(invalid),
+      /default-export an object/,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-Deno.test("all example config formats specify the same rules and formatting", async () => {
-  const examples = ["json", "jsonc", "json5", "yml", "toml"].map(
-    (extension) => {
-      const path = fileURLToPath(
-        new URL(`../examples/configs/primp.${extension}`, import.meta.url),
-      );
-      return { path, config: new ConfigHandler(path) };
-    },
+Deno.test("example config supports imported custom rules and defineConfig", async () => {
+  const path = fileURLToPath(
+    new URL("../examples/configs/primp.config.ts", import.meta.url),
   );
-  const expected = examples[0].config;
-  assert.equal(expected.sortImports[0], "!sideEffect");
-  assert.equal(expected.formatting.trailingComma, false);
-  assert.equal(expected.formatting.breakFrom, true);
-  for (const { path, config } of examples) {
-    assert.deepEqual(config, expected, path);
-    const rules = await loadRules(config, path);
-    const imports =
-      parseImports('import plain from "plain";\nimport js from "ends.js";')
-        .imports;
-    new ImportSorter(["dotJSFirst"], [], rules).sort(imports);
-    assert.equal(imports[0].source.name, "ends.js", path);
-  }
-  const dir = mkdtempSync(join(tmpdir(), "primp-config-"));
-  try {
-    const path = join(dir, "primp.json");
-    writeFileSync(path, '{"formatting":{"trailingComma":"no"}}');
-    assert.throws(
-      () => new ConfigHandler(path),
-      /trailingComma must be a boolean/,
-    );
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const config = await ConfigHandler.load(path);
+  assert.equal(config.sortImports[0], "!sideEffect");
+  assert.equal(config.formatting.trailingComma, false);
+  assert.equal(config.formatting.breakFrom, true);
+  const imports =
+    parseImports('import plain from "plain";\nimport js from "ends.js";')
+      .imports;
+  new ImportSorter(["dotJSFirst"], [], config.rules).sort(imports);
+  assert.equal(imports[0].source.name, "ends.js");
+  assert.deepEqual(defineConfig({ sortImports: [] }), { sortImports: [] });
 });

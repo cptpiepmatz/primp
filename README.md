@@ -91,50 +91,52 @@ flags, `--option=value`, and `--` for paths starting with a dash.
 
 ## Config
 
-You can use a config to customize how primp handles imports. It looks for a
-config in the input directory and its ancestors; use `-c` to select one
-explicitly (especially if several configs are in the same directory).
+Create a `primp.config.ts` with a default-exported object. Primp searches the
+input directory and its ancestors for `primp.config.ts`,
+`pretty-ts-imports.config.ts`, or `prettytsimports.config.ts` (in that order).
+Use `-c` to select any `.ts` config file explicitly. The runtime must be able to
+import TypeScript modules (Deno 2+ or Node 22.18+). The optional `defineConfig`
+helper provides type checking and editor completion:
 
-Primp recognizes these extensions:
+```ts
+import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
 
-- `.json`, `.jsonc`, `.json5`
-- `.yml`, `.yaml`
-- `.toml`
+export default defineConfig({
+  sortImports: ["sourceName"],
+  formatting: { quoteStyle: "single" },
+});
+```
 
-And these file names: `primp`, `pretty-ts-imports`, and `prettytsimports`. With
-`-c`, you can use any file name with a supported extension. JSONC allows
-comments and trailing commas; TOML uses standard tables such as `[formatting]`.
-See the [config examples](./examples/configs/) for all five formats, or the
-commented [primp.json5](./examples/configs/primp.json5) and
-[primp.yml](./examples/configs/primp.yml) for explanations.
+Plain `export default { ... }` works too. See the
+[full example](./examples/configs/primp.config.ts).
 
 Omitted fields use these defaults:
 
-```json
+```ts
 {
-  "includeJs": false,
-  "sortImports": [
+  includeJs: false,
+  sortImports: [
     "!sideEffect",
     "sourceType",
     "!namespacePresence",
     "pathName",
     "sourceName"
   ],
-  "sortImportElements": ["specifierName"],
-  "separateBy": [
+  sortImportElements: ["specifierName"],
+  separateBy: [
     "unequalSideEffectUse",
     "unequalPackageState",
     "unequalNamespaceUse"
   ],
-  "formatting": {
-    "indent": 2,
-    "bracketIndent": 1,
-    "maxColumns": 80,
-    "quoteStyle": "double",
-    "trailingComma": true,
-    "breakFrom": false
+  formatting: {
+    indent: 2,
+    bracketIndent: 1,
+    maxColumns: 80,
+    quoteStyle: "double",
+    trailingComma: true,
+    breakFrom: false
   },
-  "require": {}
+  rules: {}
 }
 ```
 
@@ -144,15 +146,15 @@ Deno-style ordering (imported name, then local alias), with Deno-compatible
 spacing and multiline commas. To opt in to the old named-specifier grouping and
 formatting:
 
-```json
-{
-  "sortImportElements": ["elementType", "basenameGroup", "elementName"],
-  "formatting": {
-    "bracketIndent": 0,
-    "trailingComma": false,
-    "breakFrom": true
-  }
-}
+```ts
+export default defineConfig({
+  sortImportElements: ["elementType", "basenameGroup", "elementName"],
+  formatting: {
+    bracketIndent: 0,
+    trailingComma: false,
+    breakFrom: true,
+  },
+});
 ```
 
 Sorting rules run left to right until the first nonzero comparison; prefix a
@@ -166,12 +168,23 @@ imports; `breakFrom` opts into wrapping an overflowing `from` clause like the
 old formatter. These options can differ from `deno fmt`, so configure both tools
 if you use them on the same files.
 
-For your own rules, default-export an ESM function and list its name in the
-appropriate rule array. For example,
-`"require": { "myRule": "./rules/my-rule.ts" }` resolves relative to the config
-file. `.js` works in both runtimes; `.ts` works with Deno and Node 22.18+ if
-Node can strip its types. Custom rules importing primp should use its JSR
-package specifier (or the Node JSR bridge).
+For your own rules, put functions in `rules` and list their names in the
+appropriate rule arrays. Functions can be inline or imported relative to the
+config file:
+
+```ts
+import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import myRule from "./rules/my-rule.ts";
+
+export default defineConfig({
+  sortImports: ["myRule", "sourceName"],
+  rules: { myRule },
+});
+```
+
+The `!` prefix reverses custom comparators too. A custom rule can override a
+built-in rule with the same name. Custom rules importing primp should use its
+JSR package specifier (or the Node JSR bridge).
 
 ## Programmatic usage
 
@@ -219,6 +232,11 @@ use `new FileManager(filePaths)`. Syntactic parsing no longer reads a tsconfig.
 `getFiles` filters non-TypeScript files, and `--watch` watches selected files.
 Node versions below 22.18 are unsupported. To restore the old ordering and
 formatting, use the config above.
+
+Existing JSON, JSONC, JSON5, YAML, and TOML configs must be converted to a
+default-exported `.config.ts` object. Replace `require: { myRule: "./rule.ts" }`
+with `import myRule from "./rule.ts"` and `rules: { myRule }`. The rule names in
+the sorting and grouping arrays remain the same.
 
 ## Development
 

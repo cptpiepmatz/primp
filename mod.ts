@@ -18,7 +18,7 @@
  * ```
  *
  * See {@link ImportCompareFunction}, {@link ImportElementCompareFunction}, and
- * {@link SeparateByFunction} to write custom ESM rules for a config file.
+ * {@link SeparateByFunction} to write custom rules in a config file.
  * @module
  */
 export { Import, ImportIntegrator, parseImports } from "./src/core.ts";
@@ -44,15 +44,11 @@ export type {
 export {
   ConfigHandler,
   defaultConfig,
-  loadRules,
+  defineConfig,
 } from "./src/configuration.ts";
-export type {
-  Config,
-  FullConfig,
-  RequiredFunction,
-} from "./src/configuration.ts";
+export type { Config, ConfigRule, FullConfig } from "./src/configuration.ts";
 
-/** Configuration types, defaults, file discovery, and custom-rule loading. */
+/** Configuration types, defaults, and TypeScript config discovery. */
 export * as config from "./src/configuration.ts";
 /** Legacy namespace containing `InvalidConfigError` and the rule exports. */
 export * as error from "./src/rules.ts";
