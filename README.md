@@ -2,7 +2,7 @@
   <img width="250" alt="primp logo" src="./icon/primp.svg">
 </p>
 <h1 align="center">primp</h1>
-<h3 align="center">pretty-ts-imports</h3>
+<h3 align="center">TypeScript import formatter</h3>
 <p align="center">
   <b>Sort your TS imports with rules of your own.</b>
 </p>
@@ -11,10 +11,10 @@
 
 <div align="center">
 
-[![JSR (placeholder)](https://img.shields.io/badge/JSR-pending%20release-8683F2?style=for-the-badge)](https://jsr.io/@cptpiepmatz/pretty-ts-imports)
+[![JSR (placeholder)](https://img.shields.io/badge/JSR-pending%20release-8683F2?style=for-the-badge)](https://jsr.io/@primp/primp)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3%E2%80%936.x-3178C6?style=for-the-badge)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/github/license/cptpiepmatz/pretty-ts-imports?style=for-the-badge)](./LICENSE)
-[![Test](https://img.shields.io/github/actions/workflow/status/cptpiepmatz/pretty-ts-imports/test.yml?label=Test&style=for-the-badge)](./.github/workflows/test.yml)
+[![License](https://img.shields.io/github/license/cptpiepmatz/primp?style=for-the-badge)](./LICENSE)
+[![Test](https://img.shields.io/github/actions/workflow/status/cptpiepmatz/primp/test.yml?label=Test&style=for-the-badge)](./.github/workflows/test.yml)
 
 </div>
 
@@ -26,18 +26,18 @@ are configurable. The rest of the file stays intact.
 ## Installation
 
 Primp requires **Deno 2+** or **Node.js 22.18+** (for native TypeScript type
-stripping). The package targets JSR as `@cptpiepmatz/pretty-ts-imports`. These
-installation commands apply after its first release.
+stripping). The package targets JSR as `@primp/primp`. These installation
+commands apply after its first release.
 
 ```sh
 # Deno
-deno add jsr:@cptpiepmatz/pretty-ts-imports
+deno add jsr:@primp/primp
 
 # Node.js, using JSR's npm compatibility bridge with npm
-npx jsr add --npm @cptpiepmatz/pretty-ts-imports
+npx jsr add --npm @primp/primp
 
 # Install the CLI as a global command with Deno (also usable in Node projects)
-deno install --global --allow-read --allow-write --allow-env --name primp jsr:@cptpiepmatz/pretty-ts-imports/cli
+deno install --global --allow-read --allow-write --allow-env --name primp jsr:@primp/primp/cli
 ```
 
 The parser supports TypeScript 5.3.3 through 6.x (verified against 5.3.3, 5.9.3,
@@ -53,13 +53,13 @@ Run primp on a file or directory. For example, to process `src` recursively:
 
 ```sh
 # Deno
-deno run --allow-read --allow-write --allow-env jsr:@cptpiepmatz/pretty-ts-imports/cli src -r
+deno run --allow-read --allow-write --allow-env jsr:@primp/primp/cli src -r
 
 # After the global Deno CLI install above
 primp src -r
 
 # Node.js, after `npx jsr add --npm` in this project
-node node_modules/@cptpiepmatz/pretty-ts-imports/cli.js src -r
+node node_modules/@primp/primp/cli.js src -r
 ```
 
 You can also pass several files or directories in one invocation, including
@@ -72,9 +72,9 @@ structure.
 The JSR package exports `/cli` for direct Deno execution and as a module for
 Node. JSR's npm compatibility bridge transpiles `cli.ts` to `cli.js` in the
 installed package, which Node can run directly. The generated npm-compatible
-package has no `bin` metadata, so `npx @cptpiepmatz/pretty-ts-imports` and
-global npm executable installs are not supported. The global `primp` command
-installed with `deno install` runs under Deno and requires Deno installed.
+package has no `bin` metadata, so `npx @primp/primp` and global npm executable
+installs are not supported. The global `primp` command installed with
+`deno install` runs under Deno and requires Deno installed.
 
 ### Arguments
 
@@ -106,8 +106,8 @@ import TypeScript modules (Deno 2+ or Node 22.18+). The optional `defineConfig`
 helper provides type checking and editor completion:
 
 ```ts
-import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
-import { sourceName } from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
+import { defineConfig } from "jsr:@primp/primp";
+import { sourceName } from "jsr:@primp/primp/rules/imports";
 
 export default defineConfig({
   sortImports: [sourceName],
@@ -124,26 +124,25 @@ Built-ins are split across `/rules/imports`, `/rules/elements`, and
 can write `const { sideEffect, sourceName } = compareImports` if you prefer
 destructuring. The package root exports `defineConfig`, `inverse`, and the
 sorting and formatting APIs. In a Node project installed through the JSR npm
-bridge, use `"@cptpiepmatz/pretty-ts-imports/rules/imports"` (and the
-corresponding other subpaths). When running this repository from source, use
-relative imports such as `"./rules/imports.ts"` and `"./mod.ts"`. Omitted fields
-use these defaults:
+bridge, use `"@primp/primp/rules/imports"` (and the corresponding other
+subpaths). When running this repository from source, use relative imports such
+as `"./rules/imports.ts"` and `"./mod.ts"`. Omitted fields use these defaults:
 
 ```ts
-import { inverse } from "jsr:@cptpiepmatz/pretty-ts-imports";
-import { specifierName } from "jsr:@cptpiepmatz/pretty-ts-imports/rules/elements";
+import { inverse } from "jsr:@primp/primp";
+import { specifierName } from "jsr:@primp/primp/rules/elements";
 import {
   namespacePresence,
   pathName,
   sideEffect,
   sourceName,
   sourceType,
-} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
+} from "jsr:@primp/primp/rules/imports";
 import {
   unequalNamespaceUse,
   unequalPackageState,
   unequalSideEffectUse,
-} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/separators";
+} from "jsr:@primp/primp/rules/separators";
 
 export default {
   includeJs: false,
@@ -178,12 +177,12 @@ spacing and multiline commas. To opt in to the old named-specifier grouping and
 formatting:
 
 ```ts
-import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import { defineConfig } from "jsr:@primp/primp";
 import {
   basenameGroup,
   elementName,
   elementType,
-} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/elements";
+} from "jsr:@primp/primp/rules/elements";
 
 export default defineConfig({
   sortImportElements: [
@@ -210,7 +209,7 @@ predicate is true; `unequalNodePrefix` separates `node:` imports from other
 imports. To opt in while retaining the other default rules, configure:
 
 ```ts
-import { defineConfig, inverse } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import { defineConfig, inverse } from "jsr:@primp/primp";
 import {
   namespacePresence,
   nodePrefix,
@@ -218,13 +217,13 @@ import {
   sideEffect,
   sourceName,
   sourceType,
-} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
+} from "jsr:@primp/primp/rules/imports";
 import {
   unequalNamespaceUse,
   unequalNodePrefix,
   unequalPackageState,
   unequalSideEffectUse,
-} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/separators";
+} from "jsr:@primp/primp/rules/separators";
 
 export default defineConfig({
   sortImports: [
@@ -253,8 +252,8 @@ Custom functions can be written inline or imported relative to the config file
 and placed directly in the appropriate array:
 
 ```ts
-import { defineConfig, inverse } from "jsr:@cptpiepmatz/pretty-ts-imports";
-import { sourceName } from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
+import { defineConfig, inverse } from "jsr:@primp/primp";
+import { sourceName } from "jsr:@primp/primp/rules/imports";
 import myRule from "./rules/my-rule.ts";
 
 export default defineConfig({
@@ -277,7 +276,7 @@ import {
   ImportSeparator,
   ImportSorter,
   parseImports,
-} from "jsr:@cptpiepmatz/pretty-ts-imports";
+} from "jsr:@primp/primp";
 
 const config = new ConfigHandler();
 const { sourceFile, imports } = parseImports(
@@ -291,10 +290,9 @@ console.log(
 );
 ```
 
-For API docs after publication, see
-[JSR](https://jsr.io/@cptpiepmatz/pretty-ts-imports/doc); locally, run
-`deno task docs` to generate documentation for the package entry points in
-`docs/`.
+For API docs after publication, see [JSR](https://jsr.io/@primp/primp/doc);
+locally, run `deno task docs` to generate documentation for the package entry
+points in `docs/`.
 
 ## Migrating from the npm package
 
@@ -331,6 +329,6 @@ After reviewing the package and confirming JSR ownership, publish with
 
 Before retiring npm, publish a manual final npm notice release with a migration
 pointer (or update the old README), then deprecate both npm names using
-`npm deprecate <package>@<version-range> "Moved to JSR: https://jsr.io/@cptpiepmatz/pretty-ts-imports"`.
+`npm deprecate <package>@<version-range> "Moved to JSR: https://jsr.io/@primp/primp"`.
 Confirm ownership, namespace, and published version first; this repository does
 not publish or deprecate the npm packages automatically.

@@ -25,16 +25,13 @@ import type { Import } from "../mod.ts";
 import {
   compareImportElements,
   elementType,
-} from "@cptpiepmatz/pretty-ts-imports/rules/elements";
+} from "@primp/primp/rules/elements";
 import {
   compareImports,
   nodePrefix,
   sourceType,
-} from "@cptpiepmatz/pretty-ts-imports/rules/imports";
-import {
-  separateBy,
-  unequalNodePrefix,
-} from "@cptpiepmatz/pretty-ts-imports/rules/separators";
+} from "@primp/primp/rules/imports";
+import { separateBy, unequalNodePrefix } from "@primp/primp/rules/separators";
 import { main, parseCliArgs } from "../cli.ts";
 
 Deno.test("yargs handles short aliases, grouped switches, equals syntax, and errors", () => {

@@ -7,7 +7,7 @@
  * ```ts
  * import {
  *   ConfigHandler, ImportIntegrator, ImportSeparator, ImportSorter, parseImports,
- * } from "jsr:@cptpiepmatz/pretty-ts-imports";
+ * } from "jsr:@primp/primp";
  *
  * const config = new ConfigHandler();
  * const { sourceFile, imports } = parseImports('import {b, a} from "pkg";\n');
