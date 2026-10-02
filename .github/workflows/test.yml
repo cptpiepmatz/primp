@@ -13,7 +13,7 @@ jobs:
           deno-version: v2.x
       - run: deno task check
       - run: deno task lint
-      - run: deno fmt --check packages/ tests/ examples/ deno.json README.md MODERNIZATION.md primp.config.ts .github/workflows/test.yml
+      - run: deno fmt --check
       - run: deno task test
       - run: deno publish --dry-run --allow-dirty
   node:
