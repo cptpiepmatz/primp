@@ -8,6 +8,9 @@
     "strict": true,
     "noUncheckedIndexedAccess": false
   },
+  "fmt": {
+    "newLineKind": "auto"
+  },
   "tasks": {
     "check": "deno check {packages,tests,examples}/**/*.ts primp.config.ts",
     "test": "deno task test:deno && deno task test:node",
