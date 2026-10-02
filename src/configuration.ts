@@ -1,9 +1,10 @@
+import JSON5 from "json5";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import JSON5 from "json5";
 import { parse as parseTOML } from "smol-toml";
 import YAML from "yaml";
+
 import type { FormattingOptions } from "./core.ts";
 import type {
   ImportCompareFunction,
