@@ -3,6 +3,8 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { FormattingOptions } from "./core.ts";
+import { tsExtractor } from "./extractors.ts";
+import type { Extractor } from "./extractors.ts";
 import { specifierName } from "../rules/elements.ts";
 import {
   namespacePresence,
@@ -25,8 +27,6 @@ import type {
 
 /** Options for formatting, sorting, and grouping imports. */
 export interface Config {
-  /** Include JavaScript files when scanning directories. */
-  includeJs?: boolean;
   /** Import comparators in priority order; use `inverse(rule)` to reverse one. */
   sortImports?: ImportCompareFunction[];
   /** Comparators for elements within each import. */
@@ -35,6 +35,8 @@ export interface Config {
   separateBy?: SeparateByFunction[];
   /** Overrides for rendered import declarations. */
   formatting?: FormattingOptions;
+  /** Ordered extractors; the first matching adapter handles a file. */
+  extractors?: Extractor[];
 }
 
 /** Provide type checking and editor completion for a config's default export. */
@@ -49,7 +51,7 @@ export type FullConfig = Required<Config> & {
 
 /** Default import ordering, grouping, and Deno-compatible formatting. */
 export const defaultConfig: FullConfig = {
-  includeJs: false,
+  extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
     sourceType,
@@ -75,7 +77,7 @@ export const defaultConfig: FullConfig = {
 
 /** Resolve defaults and discover TypeScript config files. */
 export class ConfigHandler implements FullConfig {
-  readonly includeJs: boolean;
+  readonly extractors: Extractor[];
   readonly sortImports: ImportCompareFunction[];
   readonly sortImportElements: ImportElementCompareFunction[];
   readonly separateBy: SeparateByFunction[];
@@ -83,7 +85,12 @@ export class ConfigHandler implements FullConfig {
 
   /** Fill in omitted fields from the defaults. */
   constructor(config: Config = {}) {
-    this.includeJs = config.includeJs ?? defaultConfig.includeJs;
+    this.extractors = [
+      ...(config.extractors ?? []),
+      ...defaultConfig.extractors.filter((extractor) =>
+        !config.extractors?.includes(extractor)
+      ),
+    ];
     this.sortImports = config.sortImports ?? [...defaultConfig.sortImports];
     this.sortImportElements = config.sortImportElements ??
       [...defaultConfig.sortImportElements];

@@ -2,7 +2,7 @@
   <img width="250" alt="primp logo" src="./icon/primp.svg">
 </p>
 <h1 align="center">primp</h1>
-<h3 align="center">TypeScript import formatter</h3>
+<h3 align="center">TypeScript and Vue import formatter</h3>
 <p align="center">
   <b>Sort your TS imports with rules of your own.</b>
 </p>
@@ -26,7 +26,7 @@ are configurable. The rest of the file stays intact.
 ## Installation
 
 Primp requires **Deno 2+** or **Node.js 22.18+** (for native TypeScript type
-stripping). The package targets JSR as `@primp/primp`. These installation
+stripping). The core package targets JSR as `@primp/primp`. These installation
 commands apply after its first release.
 
 ```sh
@@ -81,20 +81,19 @@ installs are not supported. The global `primp` command installed with
 Use flags to control how primp handles your files:
 
 - `-r, --recursive` descend into subdirectories
-- `--include-js` include `.js`, `.jsx`, `.mjs`, and `.cjs` files in directory
-  scans; `--include-js=false` disables this even when enabled in a config
 - `-o, --output DIR` write to another directory instead of updating in place
 - `-c, --config FILE` select a config file
 - `-w, --watch` watch the selected files after the first pass
 - `--help` show usage; `--version` show the package version
 
 Directory searches include `.ts`, `.tsx`, `.mts`, and `.cts` files by default,
-but exclude `.d.ts` and non-source files. Set `includeJs` to `true` in a config
-or pass `--include-js` to also scan JavaScript files. Explicit file paths are
-processed regardless of extension. Import blocks containing comments are left
-as-is so comments cannot be detached from their imports; header comments before
-the first import are preserved. The CLI also supports aliases, grouped short
-flags, `--option=value`, and `--` for paths starting with a dash.
+but exclude `.d.ts` and non-source files. Register `jsExtractor` to also process
+`.js`, `.jsx`, `.mjs`, and `.cjs` files. Other registered extractors, such as
+the Vue adapter, participate in directory scans too. Explicit paths to files
+without a matching extractor are skipped. Import blocks containing comments are
+left as-is so comments cannot be detached from their imports; header comments
+before the first import are preserved. The CLI also supports aliases, grouped
+short flags, `--option=value`, and `--` for paths starting with a dash.
 
 ## Config
 
@@ -125,11 +124,11 @@ can write `const { sideEffect, sourceName } = compareImports` if you prefer
 destructuring. The package root exports `defineConfig`, `inverse`, and the
 sorting and formatting APIs. In a Node project installed through the JSR npm
 bridge, use `"@primp/primp/rules/imports"` (and the corresponding other
-subpaths). When running this repository from source, use relative imports such
-as `"./rules/imports.ts"` and `"./mod.ts"`. Omitted fields use these defaults:
+subpaths). In this repository, the Deno workspace resolves `@primp/*` imports to
+local packages, including in `examples/`. Omitted fields use these defaults:
 
 ```ts
-import { inverse } from "jsr:@primp/primp";
+import { inverse, tsExtractor } from "jsr:@primp/primp";
 import { specifierName } from "jsr:@primp/primp/rules/elements";
 import {
   namespacePresence,
@@ -145,7 +144,7 @@ import {
 } from "jsr:@primp/primp/rules/separators";
 
 export default {
-  includeJs: false,
+  extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
     sourceType,
@@ -264,6 +263,56 @@ export default defineConfig({
 Custom rules importing primp should use its JSR package specifier (or the Node
 JSR bridge). An empty rule array disables that sorting or grouping stage.
 
+## JavaScript files
+
+To format JavaScript files, add the optional built-in extractor to your config:
+
+```ts
+import { defineConfig, jsExtractor } from "jsr:@primp/primp";
+
+export default defineConfig({ extractors: [jsExtractor] });
+```
+
+## Vue single-file components
+
+Vue support is an additional package: install it only when you format Vue
+components. `@primp/primp` does not depend on Vue or its compiler.
+
+```sh
+deno add jsr:@primp/vue
+# Or for Node.js through JSR's npm bridge:
+npx jsr add --npm @primp/vue
+```
+
+```ts
+import { formatImports } from "jsr:@primp/primp";
+import { vueExtractor } from "jsr:@primp/vue";
+
+const formatted = formatImports(
+  `
+<script setup lang="ts">
+import z from "z";
+import a from "a";
+</script>
+`,
+  { extractors: [vueExtractor] },
+  "component.vue",
+);
+```
+
+`@primp/vue` only extracts script slices; `@primp/primp` sorts and formats their
+imports and reinserts them into the original component. Each extractor declares
+its own `extensions` matcher (an extension string, filename regex, or filename
+predicate) and an `extract(source, filename)` function. The first matching
+extractor in the config list is used. The same `extractors` config can be used
+in `primp.config.ts` so the CLI discovers `.vue` files in directories. See the
+[Vue config example](./examples/vue/primp.config.ts). The built-in `tsExtractor`
+handles TypeScript as a single whole-file slice; `jsExtractor` does the same for
+JavaScript when configured. Custom extractors are checked before the built-in
+TypeScript extractor, so they can override it for matching files. Templates,
+styles, and other parts of the SFC remain intact. External scripts and
+unsupported script languages are skipped.
+
 ## Programmatic usage
 
 Import the building blocks from the package root if you want to handle imports
@@ -319,13 +368,15 @@ built-in exports or your imports. Replace `"!ruleName"` with `inverse(rule)`.
 
 ## Development
 
-Run `deno task test`, `deno task check`, `deno task lint`, and `deno task fmt`.
-For a local Node smoke test, run `deno install` then `deno task test:node`
-(Node.js 22.18+). Deno installs the npm dependencies from `deno.json` into
-`node_modules` for this test.
+The Deno workspace contains `packages/primp` and `packages/vue`; its root config
+resolves local `@primp/*` imports in examples and tests. Run `deno task test`,
+`deno task check`, `deno task lint`, and `deno task fmt`. For a local Node smoke
+test, run `deno install` then `deno task test:node` (Node.js 22.18+). Deno
+installs the npm dependencies from `deno.json` into `node_modules` for this
+test.
 
-After reviewing the package and confirming JSR ownership, publish with
-`deno publish --dry-run` followed by `deno publish`.
+After reviewing both packages and confirming JSR ownership, publish with
+`deno publish --dry-run` followed by `deno publish` from the workspace root.
 
 Before retiring npm, publish a manual final npm notice release with a migration
 pointer (or update the old README), then deprecate both npm names using

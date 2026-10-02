@@ -11,6 +11,7 @@ import type { SourceFile } from "typescript";
 
 import { parseImports } from "./core.ts";
 import type { Import } from "./core.ts";
+import { matchesExtractor, tsExtractor } from "./extractors.ts";
 
 /** A manager for loading and writing TypeScript source files. */
 export class FileManager {
@@ -72,25 +73,25 @@ export class FileManager {
   }
 
   /**
-   * Find TypeScript source files at a path.
+   * Find files supported by the configured extractors at a path.
    *
-   * Return the path directly for an explicit file. In a directory, collect
-   * `.ts`, `.tsx`, `.mts`, and `.cts` files (excluding `.d.ts`). Include `.js`,
-   * `.jsx`, `.mjs`, and `.cjs` when `includeJs` is true, descending into
-   * subdirectories only when `recursive` is true. Missing paths throw.
+   * Return a matching explicit file directly, or an empty array if unmatched.
+   * In a directory, collect matching files, descending into subdirectories
+   * only when `recursive` is true. Missing paths throw.
    *
    * @param path File or directory to inspect.
    * @param recursive Whether to descend into subdirectories.
-   * @param includeJs Whether to include JavaScript files in directory scans.
+   * @param matchesFile Matcher for files supported by extractors.
    * @returns The file path itself, or an array of matching paths in a directory.
    */
   static getFiles(
     path: string,
     recursive = false,
-    includeJs = false,
+    matchesFile: (filename: string) => boolean = (filename) =>
+      matchesExtractor(tsExtractor, filename),
   ): string | string[] {
     const stat = statSync(path);
-    if (stat.isFile()) return path;
+    if (stat.isFile()) return matchesFile(resolve(path)) ? path : [];
     if (!stat.isDirectory()) {
       throw new Error(`Not a file or directory: ${path}`);
     }
@@ -99,11 +100,13 @@ export class FileManager {
       const child = join(path, name);
       const info = statSync(child);
       if (info.isDirectory() && recursive) {
-        files.push(...[FileManager.getFiles(child, true, includeJs)].flat());
+        files.push(
+          ...[FileManager.getFiles(child, true, matchesFile)]
+            .flat(),
+        );
       } else if (
         info.isFile() &&
-        ((/\.[cm]?tsx?$/.test(name) && !name.endsWith(".d.ts")) ||
-          (includeJs && /\.(?:[cm]?js|jsx)$/.test(name)))
+        matchesFile(resolve(child))
       ) files.push(child);
     }
     return files;

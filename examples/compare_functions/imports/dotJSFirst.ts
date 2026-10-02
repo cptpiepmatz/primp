@@ -1,4 +1,4 @@
-import type { ImportCompareFunction } from "../../../mod.ts";
+import type { ImportCompareFunction } from "@primp/primp";
 
 /**
  * Example compare function for imports.

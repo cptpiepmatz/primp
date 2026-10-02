@@ -13,9 +13,8 @@ jobs:
           deno-version: v2.x
       - run: deno task check
       - run: deno task lint
-      - run: deno fmt --check mod.ts cli.ts src/core.ts src/rules.ts src/configuration.ts src/files.ts tests/ deno.json README.md MODERNIZATION.md
+      - run: deno fmt --check packages/ tests/ examples/ deno.json README.md MODERNIZATION.md primp.config.ts .github/workflows/test.yml
       - run: deno task test
-      - run: deno test --config tests/ts-5.3.json --no-lock --allow-read --allow-write --allow-env tests/behavior.test.ts
       - run: deno publish --dry-run --allow-dirty
   node:
     runs-on: ubuntu-latest

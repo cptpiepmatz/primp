@@ -5,22 +5,16 @@
  * import ordering and grouping, with Deno-compatible import formatting.
  *
  * ```ts
- * import {
- *   ConfigHandler, ImportIntegrator, ImportSeparator, ImportSorter, parseImports,
- * } from "jsr:@primp/primp";
+ * import { formatImports } from "jsr:@primp/primp";
  *
- * const config = new ConfigHandler();
- * const { sourceFile, imports } = parseImports('import {b, a} from "pkg";\n');
- * const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
- *   .sort(imports);
- * const grouped = new ImportSeparator(config.separateBy).insertSeparator(sorted);
- * const output = new ImportIntegrator(config.formatting).integrate(sourceFile, grouped);
+ * const output = formatImports('import {b, a} from "pkg";\n');
  * ```
  *
  * See {@link ImportCompareFunction}, {@link ImportElementCompareFunction}, and
  * {@link SeparateByFunction} to write custom rules in a config file. Built-in
  * rules are available from `/rules/imports`, `/rules/elements`, and
- * `/rules/separators`; `inverse` is available here.
+ * `/rules/separators`; `inverse` is available here. Other file formats can
+ * register an {@link Extractor} in the config.
  * @module
  */
 
@@ -31,6 +25,9 @@ export type {
   ImportSource,
 } from "./src/core.ts";
 export type { SourceFile } from "typescript";
+export { extractSource, jsExtractor, tsExtractor } from "./src/extractors.ts";
+export type { Extractor, SourceSlice } from "./src/extractors.ts";
+export { formatImports } from "./src/format.ts";
 export { FileManager } from "./src/files.ts";
 export { ImportSeparator, ImportSorter, inverse } from "./src/rules.ts";
 export type {

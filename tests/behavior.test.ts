@@ -20,8 +20,8 @@ import {
   ImportSorter,
   inverse,
   parseImports,
-} from "../mod.ts";
-import type { Import } from "../mod.ts";
+} from "@primp/primp";
+import type { Import } from "@primp/primp";
 import {
   compareImportElements,
   elementType,
@@ -32,7 +32,7 @@ import {
   sourceType,
 } from "@primp/primp/rules/imports";
 import { separateBy, unequalNodePrefix } from "@primp/primp/rules/separators";
-import { main, parseCliArgs } from "../cli.ts";
+import { main, parseCliArgs } from "@primp/primp/cli";
 
 Deno.test("yargs handles short aliases, grouped switches, equals syntax, and errors", () => {
   assert.deepEqual(
@@ -46,7 +46,6 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
     {
       inputs: ["src"],
       recursive: true,
-      includeJs: undefined,
       watch: true,
       output: "out",
       config: "primp.config.ts",
@@ -57,8 +56,10 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
     "a.ts",
     "b.ts",
   ]);
-  assert.equal(parseCliArgs(["--include-js", "src"])?.includeJs, true);
-  assert.equal(parseCliArgs(["--include-js=false", "src"])?.includeJs, false);
+  assert.throws(
+    () => parseCliArgs(["--include-js", "src"]),
+    /Unknown argument/,
+  );
   assert.throws(
     () => parseCliArgs(["--no-include-js", "src"]),
     /Unknown argument/,
@@ -150,7 +151,7 @@ Deno.test("defaults restore legacy declaration sorting and grouping with Deno-co
     `// header\nimport local from "./z";\nimport {Zoo, a, Alpha} from "beta";\nimport "polyfill";\nimport * as ns from "alpha";\n\nrun();\n`;
   const { sourceFile, imports } = parseImports(text);
   const config = new ConfigHandler();
-  assert.equal(config.includeJs, false);
+  assert.equal(config.extractors.length, 1);
   const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
     .sort(imports);
   const result = new ImportIntegrator(config.formatting).integrate(
@@ -176,7 +177,7 @@ Deno.test("defaults restore legacy declaration sorting and grouping with Deno-co
   ]);
 });
 
-Deno.test("directory scans include JavaScript only when enabled, with CLI overrides", async () => {
+Deno.test("directory scans include JavaScript only with its extractor", async () => {
   const dir = mkdtempSync(join(tmpdir(), "primp-js-scan-"));
   try {
     const nested = join(dir, "nested");
@@ -190,15 +191,9 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
     for (const file of jsFiles) writeFileSync(file, original);
     writeFileSync(join(nested, "ignore.txt"), original);
     assert.deepEqual(FileManager.getFiles(dir, true), [tsFile]);
-    assert.deepEqual(FileManager.getFiles(dir, true, true), [
-      tsFile,
-      ...jsFiles,
-    ]);
-
     const configPath = join(dir, "primp.config.ts");
-    writeFileSync(configPath, "export default { includeJs: true };");
-    assert.equal((await ConfigHandler.load(configPath)).includeJs, true);
-    await main(["--config", configPath, "--include-js=false", "-r", dir]);
+    writeFileSync(configPath, "export default {};");
+    await main(["--config", configPath, "-r", dir]);
     assert.equal(
       readFileSync(tsFile, "utf8"),
       'import a from "a";\nimport z from "z";\n',
@@ -207,16 +202,16 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
       assert.equal(readFileSync(file, "utf8"), original);
     }
 
-    await main(["--config", configPath, "-r", dir]);
-    for (const file of jsFiles) {
-      assert.equal(
-        readFileSync(file, "utf8"),
-        'import a from "a";\nimport z from "z";\n',
-      );
-      writeFileSync(file, original);
-    }
-    writeFileSync(configPath, "export default { includeJs: false };");
-    await main(["--config", configPath, "--include-js", "-r", dir]);
+    const jsConfigPath = join(dir, "js.config.ts");
+    writeFileSync(
+      jsConfigPath,
+      `import { jsExtractor } from "${
+        new URL("../packages/primp/mod.ts", import.meta.url).href
+      }";\nexport default { extractors: [jsExtractor] };`,
+    );
+    const config = await ConfigHandler.load(jsConfigPath);
+    assert.equal(config.extractors.length, 2);
+    await main(["--config", jsConfigPath, "-r", dir]);
     for (const file of jsFiles) {
       assert.equal(
         readFileSync(file, "utf8"),

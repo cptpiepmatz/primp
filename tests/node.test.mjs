@@ -19,9 +19,9 @@ import {
   ImportSeparator,
   ImportSorter,
   parseImports,
-} from "../mod.ts";
-import { compareImports, sourceName } from "../rules/imports.ts";
-import * as api from "../mod.ts";
+} from "../packages/primp/mod.ts";
+import { compareImports, sourceName } from "../packages/primp/rules/imports.ts";
+import * as api from "../packages/primp/mod.ts";
 
 test("Node imports the ESM entry point and formats imports", () => {
   assert.equal("compareImports" in api, false);
@@ -76,7 +76,7 @@ test("Node loads a TypeScript config", async () => {
 
 test("Node can execute the CLI entry point", () => {
   const result = spawnSync(process.execPath, [
-    fileURLToPath(new URL("../cli.ts", import.meta.url)),
+    fileURLToPath(new URL("../packages/primp/cli.ts", import.meta.url)),
     "--help",
   ], {
     encoding: "utf8",
@@ -84,7 +84,7 @@ test("Node can execute the CLI entry point", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Usage: primp/);
   const version = spawnSync(process.execPath, [
-    fileURLToPath(new URL("../cli.ts", import.meta.url)),
+    fileURLToPath(new URL("../packages/primp/cli.ts", import.meta.url)),
     "--version",
   ], { encoding: "utf8" });
   assert.equal(version.status, 0, version.stderr);
@@ -92,11 +92,12 @@ test("Node can execute the CLI entry point", () => {
 });
 
 test("Node executes the transpiled CLI without TypeScript support", () => {
-  const root = fileURLToPath(new URL("..", import.meta.url));
+  const root = fileURLToPath(new URL("../packages/primp/", import.meta.url));
   // Keep the output beside node_modules so its bare npm dependencies resolve.
   const dir = mkdtempSync(join(root, ".primp-js-"));
   try {
     mkdirSync(join(dir, "src"));
+    mkdirSync(join(dir, "rules"));
     writeFileSync(join(dir, "package.json"), '{"type":"module"}');
     copyFileSync(join(root, "deno.json"), join(dir, "deno.json"));
     for (
@@ -104,8 +105,13 @@ test("Node executes the transpiled CLI without TypeScript support", () => {
         "cli.ts",
         "src/configuration.ts",
         "src/core.ts",
+        "src/extractors.ts",
         "src/files.ts",
+        "src/format.ts",
         "src/rules.ts",
+        "rules/elements.ts",
+        "rules/imports.ts",
+        "rules/separators.ts",
       ]
     ) {
       const output = ts.transpileModule(

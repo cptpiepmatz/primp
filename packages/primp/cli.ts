@@ -15,9 +15,9 @@ import yargs from "yargs";
 
 import metadata from "./deno.json" with { type: "json" };
 import { ConfigHandler } from "./src/configuration.ts";
-import { ImportIntegrator } from "./src/core.ts";
 import { FileManager } from "./src/files.ts";
-import { ImportSeparator, ImportSorter } from "./src/rules.ts";
+import { matchesExtractor } from "./src/extractors.ts";
+import { formatImports } from "./src/format.ts";
 
 /** Parsed command-line options for the JSR `/cli` entry point. */
 export interface CliOptions {
@@ -25,8 +25,6 @@ export interface CliOptions {
   inputs: string[];
   /** Descend into subdirectories for directory inputs. */
   recursive: boolean;
-  /** Override whether directory scans include JavaScript files. */
-  includeJs?: boolean;
   /** Write files beneath this directory instead of updating them in place. */
   output?: string;
   /** Explicit primp config; otherwise discovered from the working directory. */
@@ -55,10 +53,6 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
       type: "boolean",
       default: false,
       describe: "Traverse directories",
-    })
-    .option("include-js", {
-      type: "boolean",
-      describe: "Include JavaScript files in directory scans",
     })
     .option("output", {
       alias: "o",
@@ -93,7 +87,6 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
   return {
     inputs: argv._.map(String),
     recursive: argv.recursive,
-    includeJs: argv.includeJs,
     output: argv.output,
     config: argv.config,
     watch: argv.watch,
@@ -140,7 +133,10 @@ export async function main(args: string[]): Promise<void> {
     const files = FileManager.getFiles(
       input,
       options.recursive,
-      options.includeJs ?? config.includeJs,
+      (filename) =>
+        config.extractors.some((extractor) =>
+          matchesExtractor(extractor, filename)
+        ),
     );
     for (const path of Array.isArray(files) ? files : [files]) {
       selected.add(resolve(path));
@@ -153,20 +149,11 @@ export async function main(args: string[]): Promise<void> {
     : inputs.length === 1 && directories[0]
     ? resolve(inputs[0])
     : commonDirectory(paths);
-  const sorter = new ImportSorter(
-    config.sortImports,
-    config.sortImportElements,
-  );
-  const separator = new ImportSeparator(config.separateBy);
-  const integrator = new ImportIntegrator(config.formatting);
   const manager = new FileManager(paths);
   const processFile = (path: string): void => {
     manager.reloadFromDisk(path);
-    const { sourceFile, imports } = manager.imports.get(resolve(path))!;
-    const content = integrator.integrate(
-      sourceFile,
-      separator.insertSeparator(sorter.sort(imports)),
-    );
+    const source = manager.imports.get(resolve(path))!.sourceFile.text;
+    const content = formatImports(source, config, path);
     const target = output !== undefined && outputBase !== undefined
       ? join(output, relative(outputBase, resolve(path)))
       : undefined;

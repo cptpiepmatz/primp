@@ -1,4 +1,4 @@
-import { defineConfig, inverse } from "./mod.ts";
+import { defineConfig, inverse } from "@primp/primp";
 import {
   namespacePresence,
   nodePrefix,
@@ -6,13 +6,13 @@ import {
   sideEffect,
   sourceName,
   sourceType,
-} from "./rules/imports.ts";
+} from "@primp/primp/rules/imports";
 import {
   unequalNamespaceUse,
   unequalNodePrefix,
   unequalPackageState,
   unequalSideEffectUse,
-} from "./rules/separators.ts";
+} from "@primp/primp/rules/separators";
 
 export default defineConfig({
   sortImports: [

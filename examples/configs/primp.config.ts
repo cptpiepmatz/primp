@@ -1,21 +1,21 @@
-import { defineConfig, inverse } from "../../mod.ts";
+import { defineConfig, inverse } from "@primp/primp";
 import {
   basenameGroup,
   elementName,
   elementType,
-} from "../../rules/elements.ts";
+} from "@primp/primp/rules/elements";
 import {
   namespacePresence,
   pathName,
   sideEffect,
   sourceName,
   sourceType,
-} from "../../rules/imports.ts";
+} from "@primp/primp/rules/imports";
 import {
   unequalNamespaceUse,
   unequalPackageState,
   unequalSideEffectUse,
-} from "../../rules/separators.ts";
+} from "@primp/primp/rules/separators";
 import dotJSFirst from "../compare_functions/imports/dotJSFirst.ts";
 
 // Opt in to the original import order, grouping, and formatting.
