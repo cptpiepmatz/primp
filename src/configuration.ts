@@ -20,6 +20,8 @@ import type {
  * in each supported format.
  */
 export interface Config {
+  /** Include JavaScript files when scanning directories. */
+  includeJs?: boolean;
   /**
    * Names of import comparators in priority order.
    *
@@ -54,6 +56,7 @@ export type FullConfig = Required<Config> & {
  * form that `deno fmt` leaves unchanged.
  */
 export const defaultConfig: FullConfig = {
+  includeJs: false,
   sortImports: [
     "!sideEffect",
     "sourceType",
@@ -92,6 +95,9 @@ function validate(value: unknown): Config {
     throw new Error("Config must be an object");
   }
   const config = value as Record<string, unknown>;
+  if (config.includeJs !== undefined && typeof config.includeJs !== "boolean") {
+    throw new Error("includeJs must be a boolean");
+  }
   for (const key of ["sortImports", "sortImportElements", "separateBy"]) {
     if (
       config[key] !== undefined &&
@@ -137,6 +143,8 @@ function validate(value: unknown): Config {
 
 /** A loader for config files and their default values. */
 export class ConfigHandler implements FullConfig {
+  /** Whether directory scans include JavaScript files. */
+  readonly includeJs: boolean;
   /** Import comparator names, in order of execution. */
   readonly sortImports: string[];
   /** Binding comparator names, in order of execution. */
@@ -181,6 +189,7 @@ export class ConfigHandler implements FullConfig {
           throw new Error(`Unsupported config format: ${path}`);
       }
     }
+    this.includeJs = config.includeJs ?? defaultConfig.includeJs;
     this.sortImports = config.sortImports ?? [...defaultConfig.sortImports];
     this.sortImportElements = config.sortImportElements ??
       [...defaultConfig.sortImportElements];

@@ -35,12 +35,19 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
     {
       input: "src",
       recursive: true,
+      includeJs: undefined,
       watch: true,
       output: "out",
       config: "primp.json",
     },
   );
   assert.equal(parseCliArgs(["--", "-file.ts"])?.input, "-file.ts");
+  assert.equal(parseCliArgs(["--include-js", "src"])?.includeJs, true);
+  assert.equal(parseCliArgs(["--include-js=false", "src"])?.includeJs, false);
+  assert.throws(
+    () => parseCliArgs(["--no-include-js", "src"]),
+    /Unknown argument/,
+  );
   assert.throws(() => parseCliArgs(["--nonsense", "src"]), /Unknown argument/);
   assert.throws(
     () => parseCliArgs(["-t", "tsconfig.json", "src"]),
@@ -62,6 +69,7 @@ Deno.test("defaults restore legacy declaration sorting and grouping with Deno-co
     `// header\nimport local from "./z";\nimport {Zoo, a, Alpha} from "beta";\nimport "polyfill";\nimport * as ns from "alpha";\n\nrun();\n`;
   const { sourceFile, imports } = parseImports(text);
   const config = new ConfigHandler();
+  assert.equal(config.includeJs, false);
   const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
     .sort(imports);
   const result = new ImportIntegrator(config.formatting).integrate(
@@ -84,6 +92,63 @@ Deno.test("defaults restore legacy declaration sorting and grouping with Deno-co
     "unequalPackageState",
     "unequalNamespaceUse",
   ]);
+});
+
+Deno.test("directory scans include JavaScript only when enabled, with CLI overrides", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "primp-js-scan-"));
+  try {
+    const nested = join(dir, "nested");
+    mkdirSync(nested);
+    const tsFile = join(dir, "a.ts");
+    const jsFiles = ["b.js", "c.jsx", "d.mjs", "e.cjs"].map((name) =>
+      join(nested, name)
+    );
+    const original = 'import z from "z";\nimport a from "a";\n';
+    writeFileSync(tsFile, original);
+    for (const file of jsFiles) writeFileSync(file, original);
+    writeFileSync(join(nested, "ignore.txt"), original);
+    assert.deepEqual(FileManager.getFiles(dir, true), [tsFile]);
+    assert.deepEqual(FileManager.getFiles(dir, true, true), [
+      tsFile,
+      ...jsFiles,
+    ]);
+
+    const configPath = join(dir, "primp.json");
+    writeFileSync(configPath, '{"includeJs":true}');
+    assert.equal(new ConfigHandler(configPath).includeJs, true);
+    await main(["--include-js=false", "-r", dir]);
+    assert.equal(
+      readFileSync(tsFile, "utf8"),
+      'import a from "a";\nimport z from "z";\n',
+    );
+    for (const file of jsFiles) {
+      assert.equal(readFileSync(file, "utf8"), original);
+    }
+
+    await main(["-r", dir]);
+    for (const file of jsFiles) {
+      assert.equal(
+        readFileSync(file, "utf8"),
+        'import a from "a";\nimport z from "z";\n',
+      );
+      writeFileSync(file, original);
+    }
+    writeFileSync(configPath, '{"includeJs":false}');
+    await main(["--include-js", "-r", dir]);
+    for (const file of jsFiles) {
+      assert.equal(
+        readFileSync(file, "utf8"),
+        'import a from "a";\nimport z from "z";\n',
+      );
+    }
+    writeFileSync(configPath, '{"includeJs":"yes"}');
+    assert.throws(
+      () => new ConfigHandler(configPath),
+      /includeJs must be a boolean/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 Deno.test("type specifiers, aliases, attributes and import-only files remain valid", () => {

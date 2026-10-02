@@ -74,14 +74,20 @@ export class FileManager {
    * Find TypeScript source files at a path.
    *
    * Return the path directly for an explicit file. In a directory, collect
-   * `.ts`, `.tsx`, `.mts`, and `.cts` files (excluding `.d.ts`), descending
-   * into subdirectories only when `recursive` is true. Missing paths throw.
+   * `.ts`, `.tsx`, `.mts`, and `.cts` files (excluding `.d.ts`). Include `.js`,
+   * `.jsx`, `.mjs`, and `.cjs` when `includeJs` is true, descending into
+   * subdirectories only when `recursive` is true. Missing paths throw.
    *
    * @param path File or directory to inspect.
    * @param recursive Whether to descend into subdirectories.
+   * @param includeJs Whether to include JavaScript files in directory scans.
    * @returns The file path itself, or an array of matching paths in a directory.
    */
-  static getFiles(path: string, recursive = false): string | string[] {
+  static getFiles(
+    path: string,
+    recursive = false,
+    includeJs = false,
+  ): string | string[] {
     const stat = statSync(path);
     if (stat.isFile()) return path;
     if (!stat.isDirectory()) {
@@ -92,9 +98,11 @@ export class FileManager {
       const child = join(path, name);
       const info = statSync(child);
       if (info.isDirectory() && recursive) {
-        files.push(...[FileManager.getFiles(child, true)].flat());
+        files.push(...[FileManager.getFiles(child, true, includeJs)].flat());
       } else if (
-        info.isFile() && /\.[cm]?tsx?$/.test(name) && !name.endsWith(".d.ts")
+        info.isFile() &&
+        ((/\.[cm]?tsx?$/.test(name) && !name.endsWith(".d.ts")) ||
+          (includeJs && /\.(?:[cm]?js|jsx)$/.test(name)))
       ) files.push(child);
     }
     return files;

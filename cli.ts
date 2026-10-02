@@ -24,6 +24,8 @@ export interface CliOptions {
   input: string;
   /** Descend into subdirectories when `input` is a directory. */
   recursive: boolean;
+  /** Override whether directory scans include JavaScript files. */
+  includeJs?: boolean;
   /** Write files beneath this directory instead of updating them in place. */
   output?: string;
   /** Explicit primp config; otherwise discovered from the input upward. */
@@ -44,6 +46,7 @@ export interface CliOptions {
  */
 export function parseCliArgs(args: string[]): CliOptions | undefined {
   const argv = yargs(args)
+    .parserConfiguration({ "boolean-negation": false })
     .scriptName("primp")
     .usage("Usage: primp [options] <file|directory>")
     .option("recursive", {
@@ -51,6 +54,10 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
       type: "boolean",
       default: false,
       describe: "Traverse directories",
+    })
+    .option("include-js", {
+      type: "boolean",
+      describe: "Include JavaScript files in directory scans",
     })
     .option("output", {
       alias: "o",
@@ -85,6 +92,7 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
   return {
     input: String(argv._[0]),
     recursive: argv.recursive,
+    includeJs: argv.includeJs,
     output: argv.output,
     config: argv.config,
     watch: argv.watch,
@@ -104,10 +112,14 @@ export async function main(args: string[]): Promise<void> {
   const options = parseCliArgs(args);
   if (!options) return;
   const { input, output } = options;
-  const files = FileManager.getFiles(input, options.recursive);
-  const paths = Array.isArray(files) ? files : [files];
   const configPath = options.config ?? ConfigHandler.findConfig(input);
   const config = new ConfigHandler(configPath);
+  const files = FileManager.getFiles(
+    input,
+    options.recursive,
+    options.includeJs ?? config.includeJs,
+  );
+  const paths = Array.isArray(files) ? files : [files];
   const custom = await loadRules(config, configPath);
   const sorter = new ImportSorter(
     config.sortImports,

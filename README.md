@@ -74,16 +74,20 @@ installed with `deno install` runs under Deno and requires Deno installed.
 Use flags to control how primp handles your files:
 
 - `-r, --recursive` descend into subdirectories
+- `--include-js` include `.js`, `.jsx`, `.mjs`, and `.cjs` files in directory
+  scans; `--include-js=false` disables this even when enabled in a config
 - `-o, --output DIR` write to another directory instead of updating in place
 - `-c, --config FILE` select a config file
 - `-w, --watch` watch the selected files after the first pass
 - `--help` show usage; `--version` show the package version
 
-Directory searches include `.ts`, `.tsx`, `.mts`, and `.cts` files, but exclude
-`.d.ts` and non-source files. Import blocks containing comments are left as-is
-so comments cannot be detached from their imports; header comments before the
-first import are preserved. The CLI also supports aliases, grouped short flags,
-`--option=value`, and `--` for paths starting with a dash.
+Directory searches include `.ts`, `.tsx`, `.mts`, and `.cts` files by default,
+but exclude `.d.ts` and non-source files. Set `includeJs` to `true` in a config
+or pass `--include-js` to also scan JavaScript files. Explicit file paths are
+processed regardless of extension. Import blocks containing comments are left
+as-is so comments cannot be detached from their imports; header comments before
+the first import are preserved. The CLI also supports aliases, grouped short
+flags, `--option=value`, and `--` for paths starting with a dash.
 
 ## Config
 
@@ -108,6 +112,7 @@ Omitted fields use these defaults:
 
 ```json
 {
+  "includeJs": false,
   "sortImports": [
     "!sideEffect",
     "sourceType",
