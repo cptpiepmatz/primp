@@ -10,6 +10,7 @@
 import { realpathSync, watch } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import yargs from "yargs";
 
 import metadata from "./deno.json" with { type: "json" };

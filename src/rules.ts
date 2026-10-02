@@ -73,9 +73,13 @@ const denoCompare = (a: string, b: string): number => {
   return folded || (a < b ? -1 : a > b ? 1 : 0);
 };
 const bool = (value: boolean): number => Number(value);
+const isNodePrefix = (imported: Import): boolean =>
+  imported.source.name.startsWith("node:");
 
 /** Built-in import comparators available by key in `sortImports`. */
 export const compareImports: Record<string, ImportCompareFunction> = {
+  /** `node:` imports before all other sources. */
+  nodePrefix: (a, b) => bool(isNodePrefix(b)) - bool(isNodePrefix(a)),
   /** Side-effect-only imports before imports that bind names. */
   sideEffect: (a, b) => bool(b.isSideEffectOnly) - bool(a.isSideEffectOnly),
   /** Package/bare specifiers before `./` and `../` sources. */
@@ -142,6 +146,8 @@ export const compareImportElements: Record<
 
 /** Built-in separator predicates available by key in `separateBy`. */
 export const separateBy: Record<string, SeparateByFunction> = {
+  /** Separate `node:` imports from other sources. */
+  unequalNodePrefix: (a, b) => isNodePrefix(a) !== isNodePrefix(b),
   /** Separate side-effect imports from imports that bind names. */
   unequalSideEffectUse: (a, b) => a.isSideEffectOnly !== b.isSideEffectOnly,
   /** Separate package/bare sources from relative sources. */

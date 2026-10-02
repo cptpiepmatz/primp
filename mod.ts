@@ -21,13 +21,13 @@
  * {@link SeparateByFunction} to write custom rules in a config file.
  * @module
  */
+
 export { Import, ImportIntegrator, parseImports } from "./src/core.ts";
 export type {
   FormattingOptions,
   ImportElement,
   ImportSource,
 } from "./src/core.ts";
-/** TypeScript AST returned alongside the parsed imports. */
 export type { SourceFile } from "typescript";
 export { FileManager } from "./src/files.ts";
 export {

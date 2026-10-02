@@ -253,6 +253,37 @@ Deno.test("inverted rules, custom rules and invalid rule names", () => {
   );
 });
 
+Deno.test("opt-in node: rules prioritize and separate built-in imports", () => {
+  const { sourceFile, imports } = parseImports(
+    'import local from "./local";\nimport pkg from "pkg";\nimport path from "node:path";\nimport fs from "node:fs";\n',
+  );
+  const config = new ConfigHandler();
+  assert.equal(config.sortImports.includes("nodePrefix"), false);
+  assert.equal(config.separateBy.includes("unequalNodePrefix"), false);
+  assert.equal(builtin.compareImports.nodePrefix(imports[2], imports[3]), 0);
+  assert.equal(builtin.compareImports.nodePrefix(imports[0], imports[1]), 0);
+  assert.equal(
+    builtin.separateBy.unequalNodePrefix(imports[2], imports[3]),
+    false,
+  );
+  assert.equal(
+    builtin.separateBy.unequalNodePrefix(imports[1], imports[2]),
+    true,
+  );
+  const sorted = new ImportSorter(
+    ["nodePrefix", ...config.sortImports],
+    config.sortImportElements,
+  ).sort(imports);
+  const separated = new ImportSeparator([
+    "unequalNodePrefix",
+    ...config.separateBy,
+  ]).insertSeparator(sorted);
+  assert.equal(
+    new ImportIntegrator(config.formatting).integrate(sourceFile, separated),
+    'import fs from "node:fs";\nimport path from "node:path";\n\nimport pkg from "pkg";\n\nimport local from "./local";\n',
+  );
+});
+
 Deno.test("configuration discovery, file filtering and output newline retention", async () => {
   const dir = mkdtempSync(join(tmpdir(), "primp-"));
   try {

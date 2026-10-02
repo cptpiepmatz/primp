@@ -6,6 +6,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+
 import type { SourceFile } from "typescript";
 
 import { parseImports } from "./core.ts";

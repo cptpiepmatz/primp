@@ -160,13 +160,35 @@ export default defineConfig({
 Sorting rules run left to right until the first nonzero comparison; prefix a
 rule with `!` to reverse it. Import rules include `sideEffect`, `sourceType`,
 `namespacePresence`, `defaultPresence`, `defaultType`, `sourceName`,
-`pathDepth`, and `pathName`. Named-element rules include `elementType`,
-`elementName`, `basenameGroup`, and `specifierName`. `separateBy` inserts a
-blank line when any listed predicate is true. `bracketIndent` controls spaces
-inside single-line named imports; `trailingComma` controls multiline named
-imports; `breakFrom` opts into wrapping an overflowing `from` clause like the
-old formatter. These options can differ from `deno fmt`, so configure both tools
-if you use them on the same files.
+`pathDepth`, `pathName`, and `nodePrefix` (`node:` imports first). Named-element
+rules include `elementType`, `elementName`, `basenameGroup`, and
+`specifierName`. `separateBy` inserts a blank line when any listed predicate is
+true; `unequalNodePrefix` separates `node:` imports from other imports. To opt
+in while retaining the other default rules, configure:
+
+```ts
+export default defineConfig({
+  sortImports: [
+    "nodePrefix",
+    "!sideEffect",
+    "sourceType",
+    "!namespacePresence",
+    "pathName",
+    "sourceName"
+  ],
+  separateBy: [
+    "unequalNodePrefix",
+    "unequalSideEffectUse",
+    "unequalPackageState",
+    "unequalNamespaceUse"
+  ],
+});
+```
+
+`bracketIndent` controls spaces inside single-line named imports;
+`trailingComma` controls multiline named imports; `breakFrom` opts into wrapping
+an overflowing `from` clause like the old formatter. These options can differ
+from `deno fmt`, so configure both tools if you use them on the same files.
 
 For your own rules, put functions in `rules` and list their names in the
 appropriate rule arrays. Functions can be inline or imported relative to the
