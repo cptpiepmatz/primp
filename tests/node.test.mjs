@@ -16,6 +16,7 @@ import ts from "typescript";
 import {
   ConfigHandler,
   ImportIntegrator,
+  ImportSeparator,
   ImportSorter,
   parseImports,
 } from "../mod.ts";
@@ -34,12 +35,15 @@ test("Node imports the ESM entry point and formats imports", () => {
 test("Node gets Deno-compatible defaults", () => {
   const config = new ConfigHandler();
   const { sourceFile, imports } = parseImports(
-    'import {b, a} from "./b";\nimport "side";\n',
+    'import "side";\nimport {b, a} from "./b";\nimport pkg from "pkg";\n',
   );
   new ImportSorter(config.sortImports, config.sortImportElements).sort(imports);
   assert.equal(
-    new ImportIntegrator(config.formatting).integrate(sourceFile, imports),
-    'import { a, b } from "./b";\nimport "side";\n',
+    new ImportIntegrator(config.formatting).integrate(
+      sourceFile,
+      new ImportSeparator(config.separateBy).insertSeparator(imports),
+    ),
+    'import pkg from "pkg";\n\nimport { a, b } from "./b";\n\nimport "side";\n',
   );
 });
 

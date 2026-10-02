@@ -56,7 +56,7 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
   assert.throws(() => parseCliArgs(["a.ts", "b.ts"]), /exactly one/);
 });
 
-Deno.test("defaults leave declaration order and grouping alone while formatting specifiers like Deno", () => {
+Deno.test("defaults restore legacy declaration sorting and grouping with Deno-compatible specifiers", () => {
   const text =
     `// header\nimport local from "./z";\nimport {Zoo, a, Alpha} from "beta";\nimport "polyfill";\nimport * as ns from "alpha";\n\nrun();\n`;
   const { sourceFile, imports } = parseImports(text);
@@ -69,11 +69,20 @@ Deno.test("defaults leave declaration order and grouping alone while formatting 
   );
   assert.equal(
     result,
-    `// header\nimport local from "./z";\nimport { a, Alpha, Zoo } from "beta";\nimport "polyfill";\nimport * as ns from "alpha";\n\nrun();\n`,
+    `// header\nimport { a, Alpha, Zoo } from "beta";\n\nimport * as ns from "alpha";\n\nimport local from "./z";\n\nimport "polyfill";\n\nrun();\n`,
   );
-  assert.equal(imports[0].source.isRelative, true);
-  assert.deepEqual(config.sortImports, []);
-  assert.deepEqual(config.separateBy, []);
+  assert.deepEqual(config.sortImports, [
+    "!sideEffect",
+    "sourceType",
+    "!namespacePresence",
+    "pathName",
+    "sourceName",
+  ]);
+  assert.deepEqual(config.separateBy, [
+    "unequalSideEffectUse",
+    "unequalPackageState",
+    "unequalNamespaceUse",
+  ]);
 });
 
 Deno.test("type specifiers, aliases, attributes and import-only files remain valid", () => {
@@ -112,7 +121,7 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
   );
 });
 
-Deno.test("Deno-style sorting, multiline commas and existing blank lines", () => {
+Deno.test("default import order, Deno-style specifiers and multiline commas", () => {
   const input =
     `import {z as a, a as z, type Zebra, type Beta, b, B, A} from 'pkg';\n\nimport {} from 'x';\nimport {alfa, bravo, charlie, delta, echo, foxtrot, golf, hotel, india} from 'phonetic';\n`;
   const { sourceFile, imports } = parseImports(input);
@@ -127,11 +136,11 @@ Deno.test("Deno-style sorting, multiline commas and existing blank lines", () =>
   );
   assert.equal(
     result,
-    `import { A, a as z, B, b, type Beta, z as a, type Zebra } from "pkg";\n\nimport {} from "x";\nimport {\n  alfa,\n  bravo,\n  charlie,\n  delta,\n  echo,\n  foxtrot,\n  golf,\n  hotel,\n  india,\n} from "phonetic";\n`,
+    `import {\n  alfa,\n  bravo,\n  charlie,\n  delta,\n  echo,\n  foxtrot,\n  golf,\n  hotel,\n  india,\n} from "phonetic";\nimport { A, a as z, B, b, type Beta, z as a, type Zebra } from "pkg";\n\nimport {} from "x";\n`,
   );
 });
 
-Deno.test("legacy grouping and formatting remain opt-in", () => {
+Deno.test("custom grouping and legacy formatting remain available", () => {
   const { sourceFile, imports } = parseImports(
     `import a from "./a";\nimport b from "b";\n`,
   );

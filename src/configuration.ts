@@ -49,13 +49,23 @@ export type FullConfig = Required<Config> & {
 /**
  * Default configuration for formatting imports.
  *
- * Alphabetize named specifiers in Deno's style without reordering import
- * declarations or adding separator lines.
+ * Keep the legacy import ordering and grouping while rendering imports in a
+ * form that `deno fmt` leaves unchanged.
  */
 export const defaultConfig: FullConfig = {
-  sortImports: [],
+  sortImports: [
+    "!sideEffect",
+    "sourceType",
+    "!namespacePresence",
+    "pathName",
+    "sourceName",
+  ],
   sortImportElements: ["specifierName"],
-  separateBy: [],
+  separateBy: [
+    "unequalSideEffectUse",
+    "unequalPackageState",
+    "unequalNamespaceUse",
+  ],
   formatting: {
     indent: 2,
     bracketIndent: 1,

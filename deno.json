@@ -24,7 +24,7 @@
     "test:deno": "deno test --allow-read --allow-write --allow-env tests/**/*.test.ts",
     "test:node": "node --test tests/**/*.test.{m,c}js",
     "lint": "deno lint",
-    "fmt": "deno fmt",
+    "fmt": "deno fmt && deno task cli . && deno task cli src -r && deno task cli tests -r && deno task cli examples -r",
     "docs": "deno doc --html --output=docs mod.ts",
     "cli": "deno run --allow-read --allow-write --allow-env cli.ts"
   },

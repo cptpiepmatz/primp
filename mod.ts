@@ -1,9 +1,8 @@
 /**
  * Parse, sort, group, and format TypeScript imports.
  *
- * The rest of the source file is left unchanged. The defaults follow Deno's
- * import formatting; configure {@link ImportSorter} and
- * {@link ImportSeparator} to opt into other rules.
+ * The rest of the source file is left unchanged. The defaults retain primp's
+ * import ordering and grouping, with Deno-compatible import formatting.
  *
  * ```ts
  * import {

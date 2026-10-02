@@ -19,9 +19,9 @@
 </div>
 
 **primp** formats the leading block of TypeScript imports using the TypeScript
-parser. It alphabetizes named specifiers by default; if you want more control,
-you can sort imports and group them with configurable rules. The rest of the
-file stays intact.
+parser. By default, it sorts and groups import declarations as in the original
+primp, while formatting named specifiers compatibly with `deno fmt`. The rules
+are configurable. The rest of the file stays intact.
 
 ## Installation
 
@@ -108,9 +108,19 @@ Omitted fields use these defaults:
 
 ```json
 {
-  "sortImports": [],
+  "sortImports": [
+    "!sideEffect",
+    "sourceType",
+    "!namespacePresence",
+    "pathName",
+    "sourceName"
+  ],
   "sortImportElements": ["specifierName"],
-  "separateBy": [],
+  "separateBy": [
+    "unequalSideEffectUse",
+    "unequalPackageState",
+    "unequalNamespaceUse"
+  ],
   "formatting": {
     "indent": 2,
     "bracketIndent": 1,
@@ -123,25 +133,15 @@ Omitted fields use these defaults:
 }
 ```
 
-By default, imports keep their order and existing blank lines; primp adds no
-groups. Named specifiers use Deno-style ordering: imported name, then local
-alias. To opt in to the old primp import order, grouping, and formatting:
+By default, primp sorts and groups import declarations as in the old version.
+`deno fmt` preserves that order and those blank lines. Named specifiers use
+Deno-style ordering (imported name, then local alias), with Deno-compatible
+spacing and multiline commas. To opt in to the old named-specifier grouping and
+formatting:
 
 ```json
 {
-  "sortImports": [
-    "!sideEffect",
-    "sourceType",
-    "!namespacePresence",
-    "pathName",
-    "sourceName"
-  ],
   "sortImportElements": ["elementType", "basenameGroup", "elementName"],
-  "separateBy": [
-    "unequalSideEffectUse",
-    "unequalPackageState",
-    "unequalNamespaceUse"
-  ],
   "formatting": {
     "bracketIndent": 0,
     "trailingComma": false,

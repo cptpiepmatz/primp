@@ -14,7 +14,7 @@
 Node 22.18+ and Deno 2+ are the supported runtime targets. TypeScript remains
 necessary for parsing; JSON5 and YAML remain necessary to read existing
 configurations. The core does not depend on filesystem or runtime globals.
-Existing npm publishing is deliberately a manual follow-up. Default formatting
-and named-specifier sorting now follow Deno. Import declaration order and
-existing blank lines are preserved unless explicitly configured otherwise;
-legacy sorting and grouping rules remain available.
+Existing npm publishing is deliberately a manual follow-up. Defaults retain the
+old import declaration sorting and grouping while formatting and sorting named
+specifiers so that `deno fmt` does not rewrite the result. The old
+named-specifier grouping and non-Deno formatting remain configurable.
