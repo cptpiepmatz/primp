@@ -1,3 +1,7 @@
+> **Deprecated:** This package has moved to JSR as [@primp/primp](https://jsr.io/@primp/primp).
+
+<hr>
+
 <p align="center">
   <picture>
     <source srcset="media://primp.svg">
