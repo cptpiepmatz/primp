@@ -33,7 +33,7 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
       "src",
     ]),
     {
-      input: "src",
+      inputs: ["src"],
       recursive: true,
       includeJs: undefined,
       watch: true,
@@ -41,7 +41,11 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
       config: "primp.config.ts",
     },
   );
-  assert.equal(parseCliArgs(["--", "-file.ts"])?.input, "-file.ts");
+  assert.deepEqual(parseCliArgs(["--", "-file.ts"])?.inputs, ["-file.ts"]);
+  assert.deepEqual(parseCliArgs(["a.ts", "b.ts"])?.inputs, [
+    "a.ts",
+    "b.ts",
+  ]);
   assert.equal(parseCliArgs(["--include-js", "src"])?.includeJs, true);
   assert.equal(parseCliArgs(["--include-js=false", "src"])?.includeJs, false);
   assert.throws(
@@ -61,7 +65,73 @@ Deno.test("yargs handles short aliases, grouped switches, equals syntax, and err
     () => parseCliArgs(["src", "--output"]),
     /requires an argument|Not enough arguments|Missing required argument/,
   );
-  assert.throws(() => parseCliArgs(["a.ts", "b.ts"]), /exactly one/);
+  assert.throws(() => parseCliArgs([]), /at least one/);
+});
+
+Deno.test("CLI uses one cwd config for multiple files and directories", async () => {
+  const root = mkdtempSync(join(tmpdir(), "primp-multi-"));
+  const cwd = Deno.cwd();
+  try {
+    const first = join(root, "first");
+    const second = join(root, "second");
+    const output = join(root, "out");
+    mkdirSync(first);
+    mkdirSync(second);
+    writeFileSync(
+      join(root, "primp.config.ts"),
+      'export default { formatting: { quoteStyle: "single" } };',
+    );
+    writeFileSync(
+      join(first, "primp.config.ts"),
+      'export default { formatting: { quoteStyle: "double" } };',
+    );
+    const original = 'import z from "z";\nimport a from "a";\n';
+    const a = join(first, "same.ts");
+    const b = join(first, "other.ts");
+    const c = join(second, "same.ts");
+    for (const path of [a, b, c]) writeFileSync(path, original);
+
+    Deno.chdir(root);
+    await main(["--output", output, a, b, c]);
+    assert.equal(
+      readFileSync(join(output, "first", "same.ts"), "utf8"),
+      "import a from 'a';\nimport z from 'z';\n",
+    );
+    assert.equal(
+      readFileSync(join(output, "first", "other.ts"), "utf8"),
+      "import a from 'a';\nimport z from 'z';\n",
+    );
+    assert.equal(
+      readFileSync(join(output, "second", "same.ts"), "utf8"),
+      "import a from 'a';\nimport z from 'z';\n",
+    );
+    assert.equal(readFileSync(a, "utf8"), original);
+
+    await main(["--output", output, first, a, second]);
+    assert.equal(
+      readFileSync(join(output, "first", "same.ts"), "utf8"),
+      "import a from 'a';\nimport z from 'z';\n",
+    );
+    assert.equal(
+      readFileSync(join(output, "second", "same.ts"), "utf8"),
+      "import a from 'a';\nimport z from 'z';\n",
+    );
+    await main([
+      "--config",
+      join(first, "primp.config.ts"),
+      "--output",
+      output,
+      a,
+      c,
+    ]);
+    assert.equal(
+      readFileSync(join(output, "second", "same.ts"), "utf8"),
+      'import a from "a";\nimport z from "z";\n',
+    );
+  } finally {
+    Deno.chdir(cwd);
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 Deno.test("defaults restore legacy declaration sorting and grouping with Deno-compatible specifiers", () => {
@@ -116,7 +186,7 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
     const configPath = join(dir, "primp.config.ts");
     writeFileSync(configPath, "export default { includeJs: true };");
     assert.equal((await ConfigHandler.load(configPath)).includeJs, true);
-    await main(["--include-js=false", "-r", dir]);
+    await main(["--config", configPath, "--include-js=false", "-r", dir]);
     assert.equal(
       readFileSync(tsFile, "utf8"),
       'import a from "a";\nimport z from "z";\n',
@@ -125,7 +195,7 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
       assert.equal(readFileSync(file, "utf8"), original);
     }
 
-    await main(["-r", dir]);
+    await main(["--config", configPath, "-r", dir]);
     for (const file of jsFiles) {
       assert.equal(
         readFileSync(file, "utf8"),
@@ -134,7 +204,7 @@ Deno.test("directory scans include JavaScript only when enabled, with CLI overri
       writeFileSync(file, original);
     }
     writeFileSync(configPath, "export default { includeJs: false };");
-    await main(["--include-js", "-r", dir]);
+    await main(["--config", configPath, "--include-js", "-r", dir]);
     for (const file of jsFiles) {
       assert.equal(
         readFileSync(file, "utf8"),
@@ -326,7 +396,7 @@ Deno.test("TypeScript config imports a comparator relative to its own file", asy
     );
     const file = join(dir, "file.ts");
     writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
-    await main([file]);
+    await main(["--config", configPath, file]);
     assert.equal(
       readFileSync(file, "utf8"),
       'import b from "b";\nimport a from "a";\n',
@@ -346,7 +416,7 @@ Deno.test("inline TypeScript rules are passed to the sorter", async () => {
     );
     const file = join(dir, "file.ts");
     writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
-    await main([file]);
+    await main(["--config", configPath, file]);
     assert.equal(
       readFileSync(file, "utf8"),
       'import b from "b";\nimport a from "a";\n',
@@ -371,7 +441,7 @@ Deno.test("TypeScript configs are discovered and explicit paths work", async () 
       writeFileSync(source, 'import b from "b";\nimport a from "a";\n');
       assert.equal(ConfigHandler.isSupportedConfigFile(configPath), true);
       assert.equal(ConfigHandler.findConfig(source), configPath);
-      await main([source]);
+      await main(["--config", configPath, source]);
       assert.equal(
         readFileSync(source, "utf8"),
         "import a from 'a';\nimport b from 'b';\n",

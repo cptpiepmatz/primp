@@ -62,6 +62,13 @@ primp src -r
 node node_modules/@cptpiepmatz/pretty-ts-imports/cli.js src -r
 ```
 
+You can also pass several files or directories in one invocation, including
+paths expanded by a shell or another tool (for example,
+`primp src/*.ts tests/*.ts`). Primp discovers one config from the current
+working directory for all inputs, unless `--config` is provided. With
+`--output`, results from multiple folders retain their relative directory
+structure.
+
 The JSR package exports `/cli` for direct Deno execution and as a module for
 Node. JSR's npm compatibility bridge transpiles `cli.ts` to `cli.js` in the
 installed package, which Node can run directly. The generated npm-compatible
@@ -92,7 +99,7 @@ flags, `--option=value`, and `--` for paths starting with a dash.
 ## Config
 
 Create a `primp.config.ts` with a default-exported object. Primp searches the
-input directory and its ancestors for `primp.config.ts`,
+current working directory and its ancestors for `primp.config.ts`,
 `pretty-ts-imports.config.ts`, or `prettytsimports.config.ts` (in that order).
 Use `-c` to select any `.ts` config file explicitly. The runtime must be able to
 import TypeScript modules (Deno 2+ or Node 22.18+). The optional `defineConfig`
@@ -174,13 +181,13 @@ export default defineConfig({
     "sourceType",
     "!namespacePresence",
     "pathName",
-    "sourceName"
+    "sourceName",
   ],
   separateBy: [
     "unequalNodePrefix",
     "unequalSideEffectUse",
     "unequalPackageState",
-    "unequalNamespaceUse"
+    "unequalNamespaceUse",
   ],
 });
 ```

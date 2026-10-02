@@ -8,7 +8,7 @@
  */
 
 import { realpathSync, watch } from "node:fs";
-import { basename, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import yargs from "yargs";
@@ -21,15 +21,15 @@ import { ImportSeparator, ImportSorter } from "./src/rules.ts";
 
 /** Parsed command-line options for the JSR `/cli` entry point. */
 export interface CliOptions {
-  /** Source file or directory. */
-  input: string;
-  /** Descend into subdirectories when `input` is a directory. */
+  /** Source files or directories. */
+  inputs: string[];
+  /** Descend into subdirectories for directory inputs. */
   recursive: boolean;
   /** Override whether directory scans include JavaScript files. */
   includeJs?: boolean;
   /** Write files beneath this directory instead of updating them in place. */
   output?: string;
-  /** Explicit primp config; otherwise discovered from the input upward. */
+  /** Explicit primp config; otherwise discovered from the working directory. */
   config?: string;
   /** Watch selected source files for changes after the first pass. */
   watch: boolean;
@@ -40,7 +40,7 @@ export interface CliOptions {
  *
  * Use yargs without reading process globals or exiting the caller. Help or
  * version flags print their output and return `undefined`; invalid options or
- * an incorrect number of input paths throw an error.
+ * no input paths throw an error.
  *
  * @param args Command-line arguments, excluding the executable name.
  * @returns Parsed options, or `undefined` for help or version requests.
@@ -49,7 +49,7 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
   const argv = yargs(args)
     .parserConfiguration({ "boolean-negation": false })
     .scriptName("primp")
-    .usage("Usage: primp [options] <file|directory>")
+    .usage("Usage: primp [options] <file|directory> [file|directory ...]")
     .option("recursive", {
       alias: "r",
       type: "boolean",
@@ -87,17 +87,37 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
     })
     .parseSync();
   if (argv.help || argv.version) return undefined;
-  if (argv._.length !== 1) {
-    throw new Error("Expected exactly one file or directory");
+  if (argv._.length === 0) {
+    throw new Error("Expected at least one file or directory");
   }
   return {
-    input: String(argv._[0]),
+    inputs: argv._.map(String),
     recursive: argv.recursive,
     includeJs: argv.includeJs,
     output: argv.output,
     config: argv.config,
     watch: argv.watch,
   };
+}
+
+function commonDirectory(paths: string[]): string {
+  let base = dirname(paths[0]);
+  for (const path of paths.slice(1)) {
+    const directory = dirname(path);
+    while (true) {
+      const remainder = relative(base, directory);
+      if (
+        remainder !== ".." && !remainder.startsWith(`..${sep}`) &&
+        !isAbsolute(remainder)
+      ) break;
+      const parent = dirname(base);
+      if (parent === base) {
+        throw new Error("Output paths must be on the same drive");
+      }
+      base = parent;
+    }
+  }
+  return base;
 }
 
 /**
@@ -112,15 +132,27 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
 export async function main(args: string[]): Promise<void> {
   const options = parseCliArgs(args);
   if (!options) return;
-  const { input, output } = options;
-  const configPath = options.config ?? ConfigHandler.findConfig(input);
+  const { inputs, output } = options;
+  const configPath = options.config ?? ConfigHandler.findConfig(".");
   const config = await ConfigHandler.load(configPath);
-  const files = FileManager.getFiles(
-    input,
-    options.recursive,
-    options.includeJs ?? config.includeJs,
-  );
-  const paths = Array.isArray(files) ? files : [files];
+  const selected = new Set<string>();
+  const directories = inputs.map((input) => {
+    const files = FileManager.getFiles(
+      input,
+      options.recursive,
+      options.includeJs ?? config.includeJs,
+    );
+    for (const path of Array.isArray(files) ? files : [files]) {
+      selected.add(resolve(path));
+    }
+    return Array.isArray(files);
+  });
+  const paths = [...selected];
+  const outputBase = output === undefined || selected.size === 0
+    ? undefined
+    : inputs.length === 1 && directories[0]
+    ? resolve(inputs[0])
+    : commonDirectory(paths);
   const sorter = new ImportSorter(
     config.sortImports,
     config.sortImportElements,
@@ -129,21 +161,18 @@ export async function main(args: string[]): Promise<void> {
   const separator = new ImportSeparator(config.separateBy, config.rules);
   const integrator = new ImportIntegrator(config.formatting);
   const manager = new FileManager(paths);
-  function processFile(path: string): void {
+  const processFile = (path: string): void => {
     manager.reloadFromDisk(path);
     const { sourceFile, imports } = manager.imports.get(resolve(path))!;
     const content = integrator.integrate(
       sourceFile,
       separator.insertSeparator(sorter.sort(imports)),
     );
-    const target = output !== undefined
-      ? join(
-        output,
-        relative(resolve(input!), resolve(path)) || basename(path),
-      )
+    const target = output !== undefined && outputBase !== undefined
+      ? join(output, relative(outputBase, resolve(path)))
       : undefined;
     manager.write(path, content, target);
-  }
+  };
   for (const path of paths) processFile(path);
   if (options.watch) {
     for (const path of paths) {
