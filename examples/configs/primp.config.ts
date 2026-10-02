@@ -1,21 +1,42 @@
-import { defineConfig } from "../../mod.ts";
+import { defineConfig, inverse } from "../../mod.ts";
+import {
+  basenameGroup,
+  elementName,
+  elementType,
+} from "../../rules/elements.ts";
+import {
+  namespacePresence,
+  pathName,
+  sideEffect,
+  sourceName,
+  sourceType,
+} from "../../rules/imports.ts";
+import {
+  unequalNamespaceUse,
+  unequalPackageState,
+  unequalSideEffectUse,
+} from "../../rules/separators.ts";
 import dotJSFirst from "../compare_functions/imports/dotJSFirst.ts";
 
 // Opt in to the original import order, grouping, and formatting.
 export default defineConfig({
   sortImports: [
-    "!sideEffect",
-    "sourceType",
-    "dotJSFirst",
-    "!namespacePresence",
-    "pathName",
-    "sourceName",
+    inverse(sideEffect),
+    sourceType,
+    dotJSFirst,
+    inverse(namespacePresence),
+    pathName,
+    sourceName,
   ],
-  sortImportElements: ["elementType", "basenameGroup", "elementName"],
+  sortImportElements: [
+    elementType,
+    basenameGroup,
+    elementName,
+  ],
   separateBy: [
-    "unequalSideEffectUse",
-    "unequalPackageState",
-    "unequalNamespaceUse",
+    unequalSideEffectUse,
+    unequalPackageState,
+    unequalNamespaceUse,
   ],
   formatting: {
     indent: 2,
@@ -25,5 +46,4 @@ export default defineConfig({
     trailingComma: false,
     breakFrom: true,
   },
-  rules: { dotJSFirst },
 });

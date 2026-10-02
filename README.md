@@ -107,9 +107,10 @@ helper provides type checking and editor completion:
 
 ```ts
 import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import { sourceName } from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
 
 export default defineConfig({
-  sortImports: ["sourceName"],
+  sortImports: [sourceName],
   formatting: { quoteStyle: "single" },
 });
 ```
@@ -117,23 +118,47 @@ export default defineConfig({
 Plain `export default { ... }` works too. See the
 [full example](./examples/configs/primp.config.ts).
 
-Omitted fields use these defaults:
+Built-ins are split across `/rules/imports`, `/rules/elements`, and
+`/rules/separators`. Each category exports its rules individually and as a group
+(`compareImports`, `compareImportElements`, or `separateBy`). For example, you
+can write `const { sideEffect, sourceName } = compareImports` if you prefer
+destructuring. The package root exports `defineConfig`, `inverse`, and the
+sorting and formatting APIs. In a Node project installed through the JSR npm
+bridge, use `"@cptpiepmatz/pretty-ts-imports/rules/imports"` (and the
+corresponding other subpaths). When running this repository from source, use
+relative imports such as `"./rules/imports.ts"` and `"./mod.ts"`. Omitted fields
+use these defaults:
 
 ```ts
-{
+import { inverse } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import { specifierName } from "jsr:@cptpiepmatz/pretty-ts-imports/rules/elements";
+import {
+  namespacePresence,
+  pathName,
+  sideEffect,
+  sourceName,
+  sourceType,
+} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
+import {
+  unequalNamespaceUse,
+  unequalPackageState,
+  unequalSideEffectUse,
+} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/separators";
+
+export default {
   includeJs: false,
   sortImports: [
-    "!sideEffect",
-    "sourceType",
-    "!namespacePresence",
-    "pathName",
-    "sourceName"
+    inverse(sideEffect),
+    sourceType,
+    inverse(namespacePresence),
+    pathName,
+    sourceName,
   ],
-  sortImportElements: ["specifierName"],
+  sortImportElements: [specifierName],
   separateBy: [
-    "unequalSideEffectUse",
-    "unequalPackageState",
-    "unequalNamespaceUse"
+    unequalSideEffectUse,
+    unequalPackageState,
+    unequalNamespaceUse,
   ],
   formatting: {
     indent: 2,
@@ -141,10 +166,9 @@ Omitted fields use these defaults:
     maxColumns: 80,
     quoteStyle: "double",
     trailingComma: true,
-    breakFrom: false
+    breakFrom: false,
   },
-  rules: {}
-}
+};
 ```
 
 By default, primp sorts and groups import declarations as in the old version.
@@ -154,8 +178,19 @@ spacing and multiline commas. To opt in to the old named-specifier grouping and
 formatting:
 
 ```ts
+import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import {
+  basenameGroup,
+  elementName,
+  elementType,
+} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/elements";
+
 export default defineConfig({
-  sortImportElements: ["elementType", "basenameGroup", "elementName"],
+  sortImportElements: [
+    elementType,
+    basenameGroup,
+    elementName,
+  ],
   formatting: {
     bracketIndent: 0,
     trailingComma: false,
@@ -164,30 +199,47 @@ export default defineConfig({
 });
 ```
 
-Sorting rules run left to right until the first nonzero comparison; prefix a
-rule with `!` to reverse it. Import rules include `sideEffect`, `sourceType`,
+Sorting rules run left to right until the first nonzero comparison. Wrap any
+comparator with `inverse(rule)` to reverse it, including custom comparators and
+named-element rules. Import comparators include `sideEffect`, `sourceType`,
 `namespacePresence`, `defaultPresence`, `defaultType`, `sourceName`,
 `pathDepth`, `pathName`, and `nodePrefix` (`node:` imports first). Named-element
 rules include `elementType`, `elementName`, `basenameGroup`, and
-`specifierName`. `separateBy` inserts a blank line when any listed predicate is
-true; `unequalNodePrefix` separates `node:` imports from other imports. To opt
-in while retaining the other default rules, configure:
+`specifierName`. The `separateBy` option inserts a blank line when any listed
+predicate is true; `unequalNodePrefix` separates `node:` imports from other
+imports. To opt in while retaining the other default rules, configure:
 
 ```ts
+import { defineConfig, inverse } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import {
+  namespacePresence,
+  nodePrefix,
+  pathName,
+  sideEffect,
+  sourceName,
+  sourceType,
+} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
+import {
+  unequalNamespaceUse,
+  unequalNodePrefix,
+  unequalPackageState,
+  unequalSideEffectUse,
+} from "jsr:@cptpiepmatz/pretty-ts-imports/rules/separators";
+
 export default defineConfig({
   sortImports: [
-    "nodePrefix",
-    "!sideEffect",
-    "sourceType",
-    "!namespacePresence",
-    "pathName",
-    "sourceName",
+    nodePrefix,
+    inverse(sideEffect),
+    sourceType,
+    inverse(namespacePresence),
+    pathName,
+    sourceName,
   ],
   separateBy: [
-    "unequalNodePrefix",
-    "unequalSideEffectUse",
-    "unequalPackageState",
-    "unequalNamespaceUse",
+    unequalNodePrefix,
+    unequalSideEffectUse,
+    unequalPackageState,
+    unequalNamespaceUse,
   ],
 });
 ```
@@ -197,23 +249,21 @@ export default defineConfig({
 an overflowing `from` clause like the old formatter. These options can differ
 from `deno fmt`, so configure both tools if you use them on the same files.
 
-For your own rules, put functions in `rules` and list their names in the
-appropriate rule arrays. Functions can be inline or imported relative to the
-config file:
+Custom functions can be written inline or imported relative to the config file
+and placed directly in the appropriate array:
 
 ```ts
-import { defineConfig } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import { defineConfig, inverse } from "jsr:@cptpiepmatz/pretty-ts-imports";
+import { sourceName } from "jsr:@cptpiepmatz/pretty-ts-imports/rules/imports";
 import myRule from "./rules/my-rule.ts";
 
 export default defineConfig({
-  sortImports: ["myRule", "sourceName"],
-  rules: { myRule },
+  sortImports: [inverse(myRule), sourceName],
 });
 ```
 
-The `!` prefix reverses custom comparators too. A custom rule can override a
-built-in rule with the same name. Custom rules importing primp should use its
-JSR package specifier (or the Node JSR bridge).
+Custom rules importing primp should use its JSR package specifier (or the Node
+JSR bridge). An empty rule array disables that sorting or grouping stage.
 
 ## Programmatic usage
 
@@ -243,7 +293,8 @@ console.log(
 
 For API docs after publication, see
 [JSR](https://jsr.io/@cptpiepmatz/pretty-ts-imports/doc); locally, run
-`deno task docs` to generate documentation in `docs/`.
+`deno task docs` to generate documentation for the package entry points in
+`docs/`.
 
 ## Migrating from the npm package
 
@@ -252,7 +303,8 @@ packages used CommonJS bundles and `primp` / `pretty-ts-imports` executables.
 Use the JSR package and its `/cli` entry point for scripts; programmatic imports
 are now ESM named exports from the package root. `Import`, `ImportSorter`,
 `ImportSeparator`, `ImportIntegrator`, `FileManager`, `ConfigHandler`,
-comparator types, and `builtin` remain available; types use TypeScript
+comparator types remain available from the package root; built-in functions are
+available from the three `/rules/*` category entry points. Types use TypeScript
 `import type`. `parseImports` is new. The old `OnDemandTranspiler` and CommonJS
 custom-rule loader are gone: convert custom rules to ESM default exports. `-t` /
 `--tsconfig` have been removed; drop those flags from scripts. The first
@@ -263,9 +315,9 @@ Node versions below 22.18 are unsupported. To restore the old ordering and
 formatting, use the config above.
 
 Existing JSON, JSONC, JSON5, YAML, and TOML configs must be converted to a
-default-exported `.config.ts` object. Replace `require: { myRule: "./rule.ts" }`
-with `import myRule from "./rule.ts"` and `rules: { myRule }`. The rule names in
-the sorting and grouping arrays remain the same.
+default-exported `.config.ts` object. Import custom functions instead of using
+`require`; replace rule names in the arrays with function references from the
+built-in exports or your imports. Replace `"!ruleName"` with `inverse(rule)`.
 
 ## Development
 

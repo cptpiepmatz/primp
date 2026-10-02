@@ -3,32 +3,38 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { FormattingOptions } from "./core.ts";
+import { specifierName } from "../rules/elements.ts";
+import {
+  namespacePresence,
+  pathName,
+  sideEffect,
+  sourceName,
+  sourceType,
+} from "../rules/imports.ts";
+import {
+  unequalNamespaceUse,
+  unequalPackageState,
+  unequalSideEffectUse,
+} from "../rules/separators.ts";
+import { inverse } from "./rules.ts";
 import type {
   ImportCompareFunction,
   ImportElementCompareFunction,
   SeparateByFunction,
 } from "./rules.ts";
 
-/** A custom comparator or separator function. */
-export type ConfigRule =
-  | ImportCompareFunction
-  | ImportElementCompareFunction
-  | SeparateByFunction;
-
 /** Options for formatting, sorting, and grouping imports. */
 export interface Config {
   /** Include JavaScript files when scanning directories. */
   includeJs?: boolean;
-  /** Import comparators in priority order; prefix a name with `!` to reverse it. */
-  sortImports?: string[];
+  /** Import comparators in priority order; use `inverse(rule)` to reverse one. */
+  sortImports?: ImportCompareFunction[];
   /** Comparators for elements within each import. */
-  sortImportElements?: string[];
+  sortImportElements?: ImportElementCompareFunction[];
   /** Predicates that separate adjacent imports with a blank line. */
-  separateBy?: string[];
+  separateBy?: SeparateByFunction[];
   /** Overrides for rendered import declarations. */
   formatting?: FormattingOptions;
-  /** Named custom rules, including overrides for built-in rules. */
-  rules?: Record<string, ConfigRule>;
 }
 
 /** Provide type checking and editor completion for a config's default export. */
@@ -45,17 +51,17 @@ export type FullConfig = Required<Config> & {
 export const defaultConfig: FullConfig = {
   includeJs: false,
   sortImports: [
-    "!sideEffect",
-    "sourceType",
-    "!namespacePresence",
-    "pathName",
-    "sourceName",
+    inverse(sideEffect),
+    sourceType,
+    inverse(namespacePresence),
+    pathName,
+    sourceName,
   ],
-  sortImportElements: ["specifierName"],
+  sortImportElements: [specifierName],
   separateBy: [
-    "unequalSideEffectUse",
-    "unequalPackageState",
-    "unequalNamespaceUse",
+    unequalSideEffectUse,
+    unequalPackageState,
+    unequalNamespaceUse,
   ],
   formatting: {
     indent: 2,
@@ -65,17 +71,15 @@ export const defaultConfig: FullConfig = {
     trailingComma: true,
     breakFrom: false,
   },
-  rules: {},
 };
 
 /** Resolve defaults and discover TypeScript config files. */
 export class ConfigHandler implements FullConfig {
   readonly includeJs: boolean;
-  readonly sortImports: string[];
-  readonly sortImportElements: string[];
-  readonly separateBy: string[];
+  readonly sortImports: ImportCompareFunction[];
+  readonly sortImportElements: ImportElementCompareFunction[];
+  readonly separateBy: SeparateByFunction[];
   readonly formatting: Required<FormattingOptions>;
-  readonly rules: Record<string, ConfigRule>;
 
   /** Fill in omitted fields from the defaults. */
   constructor(config: Config = {}) {
@@ -85,7 +89,6 @@ export class ConfigHandler implements FullConfig {
       [...defaultConfig.sortImportElements];
     this.separateBy = config.separateBy ?? [...defaultConfig.separateBy];
     this.formatting = { ...defaultConfig.formatting, ...config.formatting };
-    this.rules = { ...config.rules };
   }
 
   /** Import a config module. The runtime must support TypeScript modules. */

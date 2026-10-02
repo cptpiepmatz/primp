@@ -18,7 +18,9 @@
  * ```
  *
  * See {@link ImportCompareFunction}, {@link ImportElementCompareFunction}, and
- * {@link SeparateByFunction} to write custom rules in a config file.
+ * {@link SeparateByFunction} to write custom rules in a config file. Built-in
+ * rules are available from `/rules/imports`, `/rules/elements`, and
+ * `/rules/separators`; `inverse` is available here.
  * @module
  */
 
@@ -30,12 +32,7 @@ export type {
 } from "./src/core.ts";
 export type { SourceFile } from "typescript";
 export { FileManager } from "./src/files.ts";
-export {
-  builtin,
-  ImportSeparator,
-  ImportSorter,
-  InvalidConfigError,
-} from "./src/rules.ts";
+export { ImportSeparator, ImportSorter, inverse } from "./src/rules.ts";
 export type {
   ImportCompareFunction,
   ImportElementCompareFunction,
@@ -46,9 +43,7 @@ export {
   defaultConfig,
   defineConfig,
 } from "./src/configuration.ts";
-export type { Config, ConfigRule, FullConfig } from "./src/configuration.ts";
+export type { Config, FullConfig } from "./src/configuration.ts";
 
 /** Configuration types, defaults, and TypeScript config discovery. */
 export * as config from "./src/configuration.ts";
-/** Legacy namespace containing `InvalidConfigError` and the rule exports. */
-export * as error from "./src/rules.ts";

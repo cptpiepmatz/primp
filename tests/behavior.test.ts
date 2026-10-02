@@ -11,16 +11,30 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  builtin,
   ConfigHandler,
+  defaultConfig,
   defineConfig,
   FileManager,
   ImportIntegrator,
   ImportSeparator,
   ImportSorter,
+  inverse,
   parseImports,
 } from "../mod.ts";
 import type { Import } from "../mod.ts";
+import {
+  compareImportElements,
+  elementType,
+} from "@cptpiepmatz/pretty-ts-imports/rules/elements";
+import {
+  compareImports,
+  nodePrefix,
+  sourceType,
+} from "@cptpiepmatz/pretty-ts-imports/rules/imports";
+import {
+  separateBy,
+  unequalNodePrefix,
+} from "@cptpiepmatz/pretty-ts-imports/rules/separators";
 import { main, parseCliArgs } from "../cli.ts";
 
 Deno.test("yargs handles short aliases, grouped switches, equals syntax, and errors", () => {
@@ -150,17 +164,18 @@ Deno.test("defaults restore legacy declaration sorting and grouping with Deno-co
     result,
     `// header\nimport { a, Alpha, Zoo } from "beta";\n\nimport * as ns from "alpha";\n\nimport local from "./z";\n\nimport "polyfill";\n\nrun();\n`,
   );
-  assert.deepEqual(config.sortImports, [
-    "!sideEffect",
-    "sourceType",
-    "!namespacePresence",
-    "pathName",
-    "sourceName",
-  ]);
+  assert.deepEqual(config.sortImports, defaultConfig.sortImports);
+  assert.equal(config.sortImports[1], compareImports.sourceType);
+  assert.equal(sourceType, compareImports.sourceType);
+  assert.equal(elementType, compareImportElements.elementType);
+  assert.equal(
+    config.sortImportElements[0],
+    compareImportElements.specifierName,
+  );
   assert.deepEqual(config.separateBy, [
-    "unequalSideEffectUse",
-    "unequalPackageState",
-    "unequalNamespaceUse",
+    separateBy.unequalSideEffectUse,
+    separateBy.unequalPackageState,
+    separateBy.unequalNamespaceUse,
   ]);
 });
 
@@ -275,10 +290,13 @@ Deno.test("custom grouping and legacy formatting remain available", () => {
   const { sourceFile, imports } = parseImports(
     `import a from "./a";\nimport b from "b";\n`,
   );
-  const sorted = new ImportSorter(["sourceType"], []).sort(imports);
-  const grouped = new ImportSeparator(["unequalPackageState"]).insertSeparator(
-    sorted,
+  const sorted = new ImportSorter([compareImports.sourceType], []).sort(
+    imports,
   );
+  const grouped = new ImportSeparator([separateBy.unequalPackageState])
+    .insertSeparator(
+      sorted,
+    );
   assert.equal(
     new ImportIntegrator().integrate(sourceFile, grouped),
     `import b from "b";\n\nimport a from "./a";\n`,
@@ -305,20 +323,31 @@ Deno.test("custom grouping and legacy formatting remain available", () => {
   );
 });
 
-Deno.test("inverted rules, custom rules and invalid rule names", () => {
+Deno.test("inverse works with built-in and custom import and element comparators", () => {
   const { imports } = parseImports(`import a from "a";\nimport b from "b";`);
-  new ImportSorter(["!sourceName"], [], {}).sort(imports);
+  assert.equal(
+    inverse(compareImports.sourceName)(imports[0], imports[1]) > 0,
+    true,
+  );
+  assert.equal(inverse(compareImports.sourceType)(imports[0], imports[1]), 0);
+  new ImportSorter([inverse(compareImports.sourceName)], []).sort(imports);
   assert.equal(imports[0].source.name, "b");
-  new ImportSorter(["reverse"], [], {
-    reverse: (a: Import, b: Import) =>
-      b.source.name.localeCompare(a.source.name),
-  }).sort(imports);
+  const byName = (a: Import, b: Import) =>
+    a.source.name.localeCompare(b.source.name);
+  new ImportSorter([inverse(byName)], []).sort(imports);
   assert.equal(imports[0].source.name, "b");
-  assert.throws(() => new ImportSorter(["missing"], []), /Unknown rule/);
+  const named = parseImports('import { a, b } from "pkg";').imports;
+  new ImportSorter([], [inverse(compareImportElements.specifierName)]).sort(
+    named,
+  );
+  assert.deepEqual(named[0].elements.map((element) => element.name), [
+    "b",
+    "a",
+  ]);
   const relativeImports =
     parseImports(`import a from "./x";\nimport b from "./x/y";`).imports;
   assert.equal(
-    builtin.compareImports.pathDepth(relativeImports[0], relativeImports[1]),
+    compareImports.pathDepth(relativeImports[0], relativeImports[1]),
     -1,
   );
 });
@@ -328,24 +357,26 @@ Deno.test("opt-in node: rules prioritize and separate built-in imports", () => {
     'import local from "./local";\nimport pkg from "pkg";\nimport path from "node:path";\nimport fs from "node:fs";\n',
   );
   const config = new ConfigHandler();
-  assert.equal(config.sortImports.includes("nodePrefix"), false);
-  assert.equal(config.separateBy.includes("unequalNodePrefix"), false);
-  assert.equal(builtin.compareImports.nodePrefix(imports[2], imports[3]), 0);
-  assert.equal(builtin.compareImports.nodePrefix(imports[0], imports[1]), 0);
+  assert.equal(config.sortImports.includes(compareImports.nodePrefix), false);
+  assert.equal(nodePrefix, compareImports.nodePrefix);
+  assert.equal(unequalNodePrefix, separateBy.unequalNodePrefix);
+  assert.equal(config.separateBy.includes(separateBy.unequalNodePrefix), false);
+  assert.equal(compareImports.nodePrefix(imports[2], imports[3]), 0);
+  assert.equal(compareImports.nodePrefix(imports[0], imports[1]), 0);
   assert.equal(
-    builtin.separateBy.unequalNodePrefix(imports[2], imports[3]),
+    separateBy.unequalNodePrefix(imports[2], imports[3]),
     false,
   );
   assert.equal(
-    builtin.separateBy.unequalNodePrefix(imports[1], imports[2]),
+    separateBy.unequalNodePrefix(imports[1], imports[2]),
     true,
   );
   const sorted = new ImportSorter(
-    ["nodePrefix", ...config.sortImports],
+    [nodePrefix, ...config.sortImports],
     config.sortImportElements,
   ).sort(imports);
   const separated = new ImportSeparator([
-    "unequalNodePrefix",
+    unequalNodePrefix,
     ...config.separateBy,
   ]).insertSeparator(sorted);
   assert.equal(
@@ -361,7 +392,7 @@ Deno.test("configuration discovery, file filtering and output newline retention"
     const configPath = join(dir, "primp.config.ts");
     writeFileSync(
       configPath,
-      `export default { formatting: { quoteStyle: 'single' }, sortImports: ['sourceName'], sortImportElements: [], separateBy: [] };`,
+      `export default { formatting: { quoteStyle: 'single' }, sortImports: [(a: { source: { name: string } }, b: { source: { name: string } }) => a.source.name.localeCompare(b.source.name)], sortImportElements: [], separateBy: [] };`,
     );
     const file = join(dir, "nested", "sample.ts");
     writeFileSync(file, `import b from "b";\r\nimport a from "a";\r\n`);
@@ -392,7 +423,7 @@ Deno.test("TypeScript config imports a comparator relative to its own file", asy
     const configPath = join(dir, "primp.config.ts");
     writeFileSync(
       configPath,
-      'import reverse from "./reverse.mjs";\nexport default { sortImports: ["reverse"], sortImportElements: [], separateBy: [], rules: { reverse } };\n',
+      'import reverse from "./reverse.mjs";\nexport default { sortImports: [reverse], sortImportElements: [], separateBy: [] };\n',
     );
     const file = join(dir, "file.ts");
     writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
@@ -406,20 +437,20 @@ Deno.test("TypeScript config imports a comparator relative to its own file", asy
   }
 });
 
-Deno.test("inline TypeScript rules are passed to the sorter", async () => {
+Deno.test("inline TypeScript comparators and separators are used by the CLI", async () => {
   const dir = mkdtempSync(join(tmpdir(), "primp-inline-rule-"));
   try {
     const configPath = join(dir, "primp.config.ts");
     writeFileSync(
       configPath,
-      'export default { sortImports: ["reverse"], sortImportElements: [], separateBy: [], rules: { reverse: (a: { source: { name: string } }, b: { source: { name: string } }) => b.source.name.localeCompare(a.source.name) } };',
+      "export default { sortImports: [(a: { source: { name: string } }, b: { source: { name: string } }) => b.source.name.localeCompare(a.source.name)], sortImportElements: [], separateBy: [(a: { source: { name: string } }, b: { source: { name: string } }) => a.source.name !== b.source.name] };",
     );
     const file = join(dir, "file.ts");
     writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
     await main(["--config", configPath, file]);
     assert.equal(
       readFileSync(file, "utf8"),
-      'import b from "b";\nimport a from "a";\n',
+      'import b from "b";\n\nimport a from "a";\n',
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -435,7 +466,7 @@ Deno.test("TypeScript configs are discovered and explicit paths work", async () 
       const configPath = join(project, `${name}.config.ts`);
       writeFileSync(
         configPath,
-        'export default { sortImports: ["sourceName"], formatting: { quoteStyle: "single" } };',
+        'export default { sortImports: [(a: { source: { name: string } }, b: { source: { name: string } }) => a.source.name.localeCompare(b.source.name)], formatting: { quoteStyle: "single" } };',
       );
       const source = join(project, "input.ts");
       writeFileSync(source, 'import b from "b";\nimport a from "a";\n');
@@ -448,11 +479,9 @@ Deno.test("TypeScript configs are discovered and explicit paths work", async () 
       );
     }
     const custom = join(root, "custom.ts");
-    writeFileSync(custom, 'export default { sortImports: ["sourceName"] };');
+    writeFileSync(custom, "export default { sortImports: [] };");
     assert.equal(ConfigHandler.isSupportedConfigFile(custom), false);
-    assert.deepEqual((await ConfigHandler.load(custom)).sortImports, [
-      "sourceName",
-    ]);
+    assert.deepEqual((await ConfigHandler.load(custom)).sortImports, []);
     assert.equal(ConfigHandler.isSupportedConfigFile("primp.config.ts"), true);
     assert.equal(ConfigHandler.isSupportedConfigFile("primp.json"), false);
     await assert.rejects(
@@ -475,13 +504,13 @@ Deno.test("example config supports imported custom rules and defineConfig", asyn
     new URL("../examples/configs/primp.config.ts", import.meta.url),
   );
   const config = await ConfigHandler.load(path);
-  assert.equal(config.sortImports[0], "!sideEffect");
+  assert.equal(config.sortImports[1], compareImports.sourceType);
   assert.equal(config.formatting.trailingComma, false);
   assert.equal(config.formatting.breakFrom, true);
   const imports =
     parseImports('import plain from "plain";\nimport js from "ends.js";')
       .imports;
-  new ImportSorter(["dotJSFirst"], [], config.rules).sort(imports);
+  new ImportSorter([config.sortImports[2]], []).sort(imports);
   assert.equal(imports[0].source.name, "ends.js");
   assert.deepEqual(defineConfig({ sortImports: [] }), { sortImports: [] });
 });

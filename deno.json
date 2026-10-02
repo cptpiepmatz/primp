@@ -4,7 +4,10 @@
   "nodeModulesDir": "auto",
   "exports": {
     ".": "./mod.ts",
-    "./cli": "./cli.ts"
+    "./cli": "./cli.ts",
+    "./rules/imports": "./rules/imports.ts",
+    "./rules/elements": "./rules/elements.ts",
+    "./rules/separators": "./rules/separators.ts"
   },
   "imports": {
     "typescript": "npm:typescript@^6.0.0",
@@ -22,7 +25,7 @@
     "test:node": "node --test tests/**/*.test.{m,c}js",
     "lint": "deno lint",
     "fmt": "deno fmt && deno task cli cli.ts mod.ts src tests examples -r",
-    "docs": "deno doc --html --output=docs mod.ts",
+    "docs": "deno doc --html --output=docs mod.ts rules/imports.ts rules/elements.ts rules/separators.ts",
     "cli": "deno run --allow-read --allow-write --allow-env cli.ts"
   },
   "publish": {

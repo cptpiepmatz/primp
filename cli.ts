@@ -156,9 +156,8 @@ export async function main(args: string[]): Promise<void> {
   const sorter = new ImportSorter(
     config.sortImports,
     config.sortImportElements,
-    config.rules,
   );
-  const separator = new ImportSeparator(config.separateBy, config.rules);
+  const separator = new ImportSeparator(config.separateBy);
   const integrator = new ImportIntegrator(config.formatting);
   const manager = new FileManager(paths);
   const processFile = (path: string): void => {

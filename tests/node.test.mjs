@@ -20,12 +20,18 @@ import {
   ImportSorter,
   parseImports,
 } from "../mod.ts";
+import { compareImports, sourceName } from "../rules/imports.ts";
+import * as api from "../mod.ts";
 
 test("Node imports the ESM entry point and formats imports", () => {
+  assert.equal("compareImports" in api, false);
   const { sourceFile, imports } = parseImports(
     'import b from "b";\nimport a from "a";\n',
   );
-  const sorted = new ImportSorter(["sourceName"], []).sort(imports);
+  assert.equal(sourceName, compareImports.sourceName);
+  const sorted = new ImportSorter([sourceName], []).sort(
+    imports,
+  );
   assert.equal(
     new ImportIntegrator().integrate(sourceFile, sorted),
     'import a from "a";\nimport b from "b";\n',
@@ -53,10 +59,15 @@ test("Node loads a TypeScript config", async () => {
     const path = join(dir, "primp.config.ts");
     writeFileSync(
       path,
-      'const config: { sortImports: string[]; formatting: { quoteStyle: "single" } } = { sortImports: ["sourceName"], formatting: { quoteStyle: "single" } };\nexport default config;\n',
+      'const config: { sortImports: ((a: { source: { name: string } }, b: { source: { name: string } }) => number)[]; formatting: { quoteStyle: "single" } } = { sortImports: [(a, b) => a.source.name.localeCompare(b.source.name)], formatting: { quoteStyle: "single" } };\nexport default config;\n',
     );
     const config = await ConfigHandler.load(path);
-    assert.deepEqual(config.sortImports, ["sourceName"]);
+    assert.equal(
+      config.sortImports[0]({ source: { name: "a" } }, {
+        source: { name: "b" },
+      }),
+      -1,
+    );
     assert.equal(config.formatting.quoteStyle, "single");
   } finally {
     rmSync(dir, { recursive: true, force: true });
