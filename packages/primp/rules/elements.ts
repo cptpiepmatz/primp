@@ -1,7 +1,7 @@
-/** 
+/**
  * Built-in named-import-element comparators.
- * 
- * @module 
+ *
+ * @module
  */
 
 import type { ImportElementCompareFunction } from "../src/rules.ts";
@@ -26,7 +26,7 @@ import type { ImportElementCompareFunction } from "../src/rules.ts";
  *
  * @see ImportElement#isFunctionOrObject
  */
-export const basenameGroup: ImportElementCompareFunction = function(a, b) {
+export const basenameGroup: ImportElementCompareFunction = function (a, b) {
   if (a.isFunctionOrObject || b.isFunctionOrObject) return 0;
 
   const matcher = /([A-Z][a-z]*)/g;
@@ -42,7 +42,7 @@ export const basenameGroup: ImportElementCompareFunction = function(a, b) {
     if (comparison !== 0) return comparison;
   }
   return 0;
-}
+};
 
 /**
  * Compares two import element names by their name alphabetically.
@@ -56,9 +56,9 @@ export const basenameGroup: ImportElementCompareFunction = function(a, b) {
  * import {a, b, c, d} from "alphabet";
  * ```
  */
-export const elementName: ImportElementCompareFunction = function(a, b) {
+export const elementName: ImportElementCompareFunction = function (a, b) {
   return a.name.localeCompare(b.name);
-}
+};
 
 /**
  * Compares two import elements whether they are a function, object or Type.
@@ -76,10 +76,10 @@ export const elementName: ImportElementCompareFunction = function(a, b) {
  * @see ImportElement#isFunctionOrObject
  * @see ImportElement#isType
  */
-export const elementType: ImportElementCompareFunction = function(a, b) {
-  const [aFunction, bFunction] = [a, b].map(m => +m.isFunctionOrObject);
+export const elementType: ImportElementCompareFunction = function (a, b) {
+  const [aFunction, bFunction] = [a, b].map((m) => +m.isFunctionOrObject);
   return bFunction - aFunction;
-}
+};
 
 /**
  * Compares import elements alphabetically by their original specifier names,
@@ -94,7 +94,7 @@ export const elementType: ImportElementCompareFunction = function(a, b) {
  * import {a as y, b as z, z as a} from "alphabet";
  * ```
  */
-export const specifierName: ImportElementCompareFunction = function(a, b) {
-  const [aName, bName] = [a, b].map(m => m.originalName ?? m.name);
+export const specifierName: ImportElementCompareFunction = function (a, b) {
+  const [aName, bName] = [a, b].map((m) => m.originalName ?? m.name);
   return aName.toLowerCase().localeCompare(bName.toLowerCase());
-}
+};

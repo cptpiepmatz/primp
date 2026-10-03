@@ -23,16 +23,16 @@ import { formatImports } from "./src/format.ts";
 export interface CliOptions {
   /** Source files or directories. */
   inputs: string[];
-  
+
   /** Descend into subdirectories for directory inputs. */
   recursive: boolean;
-  
+
   /** Write files beneath this directory instead of updating them in place. */
   output?: string;
-  
+
   /** Explicit primp config; otherwise discovered from the working directory. */
   config?: string;
-  
+
   /** Watch selected source files for changes after the first pass. */
   watch: boolean;
 }
