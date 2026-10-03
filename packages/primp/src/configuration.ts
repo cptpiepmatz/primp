@@ -29,12 +29,16 @@ import type {
 export interface Config {
   /** Import comparators in priority order; use `inverse(rule)` to reverse one. */
   sortImports?: ImportCompareFunction[];
+
   /** Comparators for elements within each import. */
   sortImportElements?: ImportElementCompareFunction[];
+
   /** Predicates that separate adjacent imports with a blank line. */
   separateBy?: SeparateByFunction[];
+
   /** Overrides for rendered import declarations. */
   formatting?: FormattingOptions;
+
   /** Ordered extractors; the first matching adapter handles a file. */
   extractors?: Extractor[];
 }
