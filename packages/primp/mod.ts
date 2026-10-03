@@ -1,9 +1,6 @@
 /**
  * Parse, sort, group, and format TypeScript imports.
  *
- * The rest of the source file is left unchanged. The defaults retain primp's
- * import ordering and grouping, with Deno-compatible import formatting.
- *
  * ```ts
  * import { formatImports } from "jsr:@primp/primp";
  *

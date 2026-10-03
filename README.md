@@ -340,8 +340,10 @@ console.log(
 ```
 
 For API docs after publication, see [JSR](https://jsr.io/@primp/primp/doc);
-locally, run `deno task docs` to generate documentation for the package entry
-points in `docs/`.
+locally, run `deno task docs` to generate documentation for each entry point:
+[main package](docs/index.html), [Vue](docs/vue/index.html), and the built-in
+rules ([imports](docs/imports/index.html), [elements](docs/elements/index.html),
+[separators](docs/separators/index.html)).
 
 ## Migrating from the npm package
 
