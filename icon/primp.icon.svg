@@ -1,71 +1,48 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 500 500" version="1.1"
-  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-  xml:space="preserve" xmlns:serif="http://www.serif.com/"
-  style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-  <g transform="matrix(1,0,0,1,-650,0)">
-    <rect id="smol" x="650" y="0" width="500" height="500" style="fill:none;" />
-    <g id="smol1" serif:id="smol">
-      <g id="Box" transform="matrix(1.21851,0,0,1.21851,539.187,-29.0476)">
-        <clipPath id="_clip1">
-          <path
-            d="M213.196,105.885L108.523,166.317C103.349,169.305 99.148,177.331 99.148,184.23L99.148,331C99.148,337.899 103.349,345.925 108.523,348.912L237.046,423.115C243.02,426.564 252.072,426.939 257.246,423.952L387.287,348.873C392.461,345.885 396.662,337.859 396.662,330.96L396.662,196.73L396.593,196.77L396.593,184.23C396.593,177.331 392.393,169.305 387.218,166.317L258.662,92.095C252.687,88.646 243.636,88.271 238.462,91.258L213.91,105.433C213.658,105.578 213.42,105.729 213.196,105.885Z" />
-        </clipPath>
-        <g clip-path="url(#_clip1)">
-          <path id="Edge-Filler" serif:id="Edge Filler"
-            d="M396.593,171.73L99.08,171.643L247.871,429.365L396.593,171.73Z" />
-          <g id="Base-Colors" serif:id="Base Colors">
-            <g id="Top"
-              transform="matrix(0.806966,-0.465902,0.842891,0.486643,0.0328637,-68.4504)">
-              <rect x="-196.346" y="305.568" width="184.298" height="176.443"
-                style="fill:rgb(242,150,72);" />
+<svg width="100%" height="100%" viewBox="0 0 500 500" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1,0,0,1,-650,0)">
+        <rect id="smol" x="650" y="0" width="500" height="500" style="fill:none;"/>
+        <g id="smol1" serif:id="smol">
+            <g id="Box" transform="matrix(1.21851,0,0,1.21851,539.187,-29.0476)">
+                <clipPath id="_clip1">
+                    <path d="M213.196,105.885L108.523,166.317C103.349,169.305 99.148,177.331 99.148,184.23L99.148,331C99.148,337.899 103.349,345.925 108.523,348.912L237.046,423.115C243.02,426.564 252.072,426.939 257.246,423.952L387.287,348.873C392.461,345.885 396.662,337.859 396.662,330.96L396.662,196.73L396.593,196.77L396.593,184.23C396.593,177.331 392.393,169.305 387.218,166.317L258.662,92.095C252.687,88.646 243.636,88.271 238.462,91.258L213.91,105.433C213.658,105.578 213.42,105.729 213.196,105.885Z"/>
+                </clipPath>
+                <g clip-path="url(#_clip1)">
+                    <path id="Edge-Filler" serif:id="Edge Filler" d="M396.593,171.73L99.08,171.643L247.871,429.365L396.593,171.73Z"/>
+                    <g id="Base-Colors" serif:id="Base Colors">
+                        <g id="Top" transform="matrix(0.806966,-0.465902,0.842891,0.486643,0.0328637,-68.4504)">
+                            <rect x="-196.346" y="305.568" width="184.298" height="176.443" style="fill:rgb(242,150,72);"/>
+                        </g>
+                        <g id="Front" transform="matrix(1.01896,0.588565,-5.61213e-17,1.17071,-44.1025,-27.0805)">
+                            <rect x="140.586" y="99.108" width="145.956" height="146.722" style="fill:rgb(242,150,72);"/>
+                        </g>
+                        <g id="Side" transform="matrix(0.865711,-0.499819,5.5453e-17,1.15349,0.104596,0.305709)">
+                            <rect x="286.2" y="347.066" width="171.792" height="148.879" style="fill:rgb(242,150,72);"/>
+                        </g>
+                    </g>
+                    <g id="Tape">
+                        <g id="Tape-Side" serif:id="Tape Side" transform="matrix(0.866025,-0.5,3.75942e-16,7.82007,-1.11196e-13,-2313.01)">
+                            <rect x="353.482" y="347.019" width="37.191" height="6.388" style="fill:rgb(146,58,26);"/>
+                        </g>
+                        <g id="Tape-Top" serif:id="Tape Top" transform="matrix(1.76865,-1.02113,9.4322,5.44568,-1746.5,-1019.58)">
+                            <rect x="-28.622" y="207.219" width="18.207" height="15.768" style="fill:rgb(146,58,26);"/>
+                        </g>
+                        <g id="Tape-Filler" serif:id="Tape Filler" transform="matrix(25.1931,0,0,34.6357,-7415.69,-7544)">
+                            <rect x="306.505" y="223.739" width="1.278" height="0.537" style="fill:rgb(146,58,26);"/>
+                        </g>
+                    </g>
+                    <g id="Front-Shadow" serif:id="Front Shadow" transform="matrix(1.01896,0.588565,0,1.17071,-44.1025,-27.0805)">
+                        <rect x="140.586" y="99.108" width="145.956" height="146.722" style="fill:rgb(126,0,0);fill-opacity:0.2;"/>
+                    </g>
+                    <g id="Side-Shadow" serif:id="Side Shadow" transform="matrix(0.865711,-0.499819,0,1.15349,0.104596,0.305709)">
+                        <rect x="286.2" y="347.066" width="171.792" height="148.879" style="fill:rgb(129,0,0);fill-opacity:0.4;"/>
+                    </g>
+                </g>
             </g>
-            <g id="Front"
-              transform="matrix(1.01896,0.588565,-5.61213e-17,1.17071,-44.1025,-27.0805)">
-              <rect x="140.586" y="99.108" width="145.956" height="146.722"
-                style="fill:rgb(242,150,72);" />
+            <g transform="matrix(4.17253,0,0,3.00443,-338.74,-285.974)">
+                <path d="M326.244,98.512L333.426,134.841L354.399,147.28L333.426,159.719L326.244,196.048L319.063,159.719L298.09,147.28L319.063,134.841L326.244,98.512Z" style="fill:rgb(134,131,242);"/>
             </g>
-            <g id="Side"
-              transform="matrix(0.865711,-0.499819,5.5453e-17,1.15349,0.104596,0.305709)">
-              <rect x="286.2" y="347.066" width="171.792" height="148.879"
-                style="fill:rgb(242,150,72);" />
-            </g>
-          </g>
-          <g id="Tape">
-            <g id="Tape-Side" serif:id="Tape Side"
-              transform="matrix(0.866025,-0.5,3.75942e-16,7.82007,-1.11196e-13,-2313.01)">
-              <rect x="353.482" y="347.019" width="37.191" height="6.388"
-                style="fill:rgb(146,58,26);" />
-            </g>
-            <g id="Tape-Top" serif:id="Tape Top"
-              transform="matrix(1.76865,-1.02113,9.4322,5.44568,-1746.5,-1019.58)">
-              <rect x="-28.622" y="207.219" width="18.207" height="15.768"
-                style="fill:rgb(146,58,26);" />
-            </g>
-            <g id="Tape-Filler" serif:id="Tape Filler"
-              transform="matrix(25.1931,0,0,34.6357,-7415.69,-7544)">
-              <rect x="306.505" y="223.739" width="1.278" height="0.537"
-                style="fill:rgb(146,58,26);" />
-            </g>
-          </g>
-          <g id="Front-Shadow" serif:id="Front Shadow"
-            transform="matrix(1.01896,0.588565,0,1.17071,-44.1025,-27.0805)">
-            <rect x="140.586" y="99.108" width="145.956" height="146.722"
-              style="fill:rgb(126,0,0);fill-opacity:0.2;" />
-          </g>
-          <g id="Side-Shadow" serif:id="Side Shadow"
-            transform="matrix(0.865711,-0.499819,0,1.15349,0.104596,0.305709)">
-            <rect x="286.2" y="347.066" width="171.792" height="148.879"
-              style="fill:rgb(129,0,0);fill-opacity:0.4;" />
-          </g>
         </g>
-      </g>
-      <g transform="matrix(4.17253,0,0,3.00443,-338.74,-285.974)">
-        <path
-          d="M326.244,98.512L333.426,134.841L354.399,147.28L333.426,159.719L326.244,196.048L319.063,159.719L298.09,147.28L319.063,134.841L326.244,98.512Z"
-          style="fill:rgb(134,131,242);" />
-      </g>
     </g>
-  </g>
 </svg>

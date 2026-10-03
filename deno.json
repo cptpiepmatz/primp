@@ -9,7 +9,8 @@
     "noUncheckedIndexedAccess": false
   },
   "fmt": {
-    "newLineKind": "auto"
+    "newLineKind": "auto",
+    "exclude": ["./icon/"]
   },
   "tasks": {
     "check": "deno check {packages,tests,examples}/**/*.ts primp.config.ts",
