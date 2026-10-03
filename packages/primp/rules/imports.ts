@@ -1,61 +1,208 @@
-/** Built-in import-declaration comparators. @module */
+/**
+ * Built-in import-declaration comparators.
+ *
+ * @module
+ */
+
+import { dirname } from "node:path";
+import type { Import } from "../src/core.ts";
 import type { ImportCompareFunction } from "../src/rules.ts";
 
-const bool = (value: boolean): number => Number(value);
-const compare = (a: string, b: string): number => a.localeCompare(b);
+/**
+ * Compares two imports by their presence of a default import.
+ * An import with a default import is considered lesser (positioned higher).
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import {a, b, c} from "alpha";
+ * import d, {e, f} from "beta";
+ *
+ * // sorted
+ * import d, {e, f} from "beta";
+ * import {a, b, c} from "alpha";
+ * ```
+ *
+ * @see ImportElement#isDefault
+ */
+export const defaultPresence: ImportCompareFunction = function (a, b) {
+  const aDefault = a.defaultElement ? 0 : 1;
+  const bDefault = b.defaultElement ? 0 : 1;
+  return aDefault - bDefault;
+};
 
-/** `node:` imports before all other sources. */
-export const nodePrefix: ImportCompareFunction = (a, b) =>
-  bool(b.source.name.startsWith("node:")) -
-  bool(a.source.name.startsWith("node:"));
-/** Side-effect-only imports before imports that bind names. */
-export const sideEffect: ImportCompareFunction = (a, b) =>
-  bool(b.isSideEffectOnly) - bool(a.isSideEffectOnly);
-/** Package/bare specifiers before `./` and `../` sources. */
-export const sourceType: ImportCompareFunction = (a, b) =>
-  bool(a.source.isRelative) - bool(b.source.isRelative);
-/** Namespace (`* as`) imports before other imports. */
-export const namespacePresence: ImportCompareFunction = (a, b) =>
-  bool(b.isNamespace) - bool(a.isNamespace);
-/** Imports with default bindings before those without. */
-export const defaultPresence: ImportCompareFunction = (a, b) =>
-  bool(!!b.defaultElement) - bool(!!a.defaultElement);
-/** Uppercase default names before lowercase ones; ignores missing defaults. */
-export const defaultType: ImportCompareFunction = (a, b) =>
-  a.defaultElement && b.defaultElement
-    ? bool(b.defaultElement.isType) - bool(a.defaultElement.isType)
-    : 0;
-/** Sort package names alphabetically; does not compare relative sources. */
-export const sourceName: ImportCompareFunction = (a, b) =>
-  a.source.isRelative || b.source.isRelative
-    ? 0
-    : compare(a.source.name, b.source.name);
-/** Shorter relative paths first; does not compare package sources. */
-export const pathDepth: ImportCompareFunction = (a, b) =>
-  a.source.isPackage || b.source.isPackage
-    ? 0
-    : a.source.name.split("/").length - b.source.name.split("/").length;
-/** Compare relative paths by parent-directory segments, ignoring filenames. */
-export const pathName: ImportCompareFunction = (a, b) => {
-  if (a.source.isPackage || b.source.isPackage) return 0;
-  const partsA = a.source.name.split("/").slice(0, -1);
-  const partsB = b.source.name.split("/").slice(0, -1);
-  for (let i = 0; i < Math.min(partsA.length, partsB.length); i++) {
-    const result = compare(partsA[i], partsB[i]);
-    if (result) return result;
+/**
+ * Compares two default imports whether one of them is a type.
+ * Element recognized as type imports are considered lesser (higher position).
+ *
+ * <i>This ignores imports without default imports.</i>
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import {gamma} from "Gamma";
+ * import alpha from "Alpha";
+ * import Beta from "Beta";
+ *
+ * // sorted
+ * import {gamma} from "Gamma";
+ * import Beta from "Beta";
+ * import alpha from "Alpha";
+ * ```
+ *
+ * @see ImportElement#isType
+ */
+export const defaultType: ImportCompareFunction = function (a, b) {
+  const aDefault = a.defaultElement;
+  const bDefault = b.defaultElement;
+  if (!aDefault || !bDefault) return 0;
+  const aType = aDefault.isType ? 0 : 1;
+  const bType = bDefault.isType ? 0 : 1;
+  return aType - bType;
+};
+
+/**
+ * Compare two imports by their presence of a namespace import.
+ * An import with a namespace import is considered lesser (positioned higher).
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import alpha from "Alpha";
+ * import * as beta from "Beta";
+ *
+ * // sorted
+ * import * as beta from "Beta";
+ * import alpha from "Alpha";
+ * ```
+ *
+ * @see Import#isNamespace
+ */
+export const namespacePresence: ImportCompareFunction = function (a, b) {
+  const aNamespace = a.isNamespace ? 0 : 1;
+  const bNamespace = b.isNamespace ? 0 : 1;
+  return aNamespace - bNamespace;
+};
+
+/**
+ * Compares two path for their depth.
+ * The deeper path is considered greater.
+ *
+ * <i>This ignores package names.</i>
+ *
+ * <b>Note: This does not take the path names into account.</b>
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import a from "./longer/path";
+ * import b from "./short-path";
+ *
+ * // sorted
+ * import b from "./short-path";
+ * import a from "./longer/path";
+ * ```
+ */
+export const pathDepth: ImportCompareFunction = function (a, b) {
+  if ([a, b].some((m) => m.source.isPackage)) return 0;
+  const [dirsA, dirsB] = [a, b].map((m) => m.source.name.split("/").length);
+  return dirsA - dirsB;
+};
+
+/**
+ * Compares two source paths by their dir hierarchy from top to bottom.
+ * Every element of the tree is compared against the other source and
+ * alphabetically ordered.
+ *
+ * <i>This ignores package names.</i>
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import c from "./alpha-beta/alpha/c";
+ * import b from "./alpha/gamma/b";
+ * import a from "./alpha/beta/a";
+ *
+ * // sorted
+ * import a from "./alpha/beta/a";
+ * import b from "./alpha/gamma/b";
+ * import c from "./alpha-beta/alpha/c";
+ * ```
+ */
+export const pathName: ImportCompareFunction = function (a, b) {
+  if ([a, b].some((m) => m.source.isPackage)) return 0;
+  const [dirsA, dirsB] = [a, b].map((m) => dirname(m.source.name).split("/"));
+  const minLength = Math.min(dirsA.length, dirsB.length);
+  for (let i = 0; i < minLength; i++) {
+    const comparison = dirsA[i].localeCompare(dirsB[i]);
+    if (comparison) return comparison;
   }
   return 0;
 };
 
-/** All import-declaration comparators, also available individually above. */
-export const compareImports: Record<string, ImportCompareFunction> = {
-  nodePrefix,
-  sideEffect,
-  sourceType,
-  namespacePresence,
-  defaultPresence,
-  defaultType,
-  sourceName,
-  pathDepth,
-  pathName,
+/**
+ * Compares two import sources whether they are relatives or packages.
+ * A relative path is considered greater (positioned lower).
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import b from "./Beta";
+ * import c from "Gamma";
+ * import a from "Alpha";
+ *
+ * // sorted
+ * import c from "Gamma";
+ * import a from "Alpha";
+ * import b from "./Beta";
+ * ```
+ *
+ * @see ImportSource#isPackage
+ * @see ImportSource#isRelative
+ */
+export const sourceType: ImportCompareFunction = function (a, b) {
+  const aPackage = a.source.isPackage ? 0 : 1;
+  const bPackage = b.source.isPackage ? 0 : 1;
+  return aPackage - bPackage;
+};
+
+/**
+ * Compares two imports based on their source name alphabetically.
+ *
+ * <i>This ignores relative sources. </i>
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import a from "beta";
+ * import b from "alpha";
+ *
+ * // sorted
+ * import b from "alpha";
+ * import a from "beta";
+ * ```
+ */
+export const sourceName: ImportCompareFunction = function (a, b) {
+  if ([a, b].some((m) => m.source.isRelative)) return 0;
+  return a.source.name.localeCompare(b.source.name);
+};
+
+/**
+ * Compares two imports by whether their source starts with the `node:` prefix.
+ * An import with the prefix is considered lesser (positioned higher).
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import a from "alpha";
+ * import fs from "node:fs";
+ *
+ * // sorted
+ * import fs from "node:fs";
+ * import a from "alpha";
+ * ```
+ */
+export const nodePrefix: ImportCompareFunction = function (a, b) {
+  const startsWithNode = (m: Import) => +(m.source.name.startsWith("node:"));
+  return startsWithNode(b) - startsWithNode(a);
 };
