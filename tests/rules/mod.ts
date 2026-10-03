@@ -1,0 +1,76 @@
+import assert from "node:assert/strict";
+
+import {
+  ImportIntegrator,
+  ImportSeparator,
+  ImportSorter,
+  parseImports,
+} from "@primp/primp";
+import type { Import, ImportElement } from "@primp/primp";
+
+// Indented TypeScript fixtures with a single final newline.
+// The ts tag can also be recognized by VS Code tagged-template highlighters.
+export function ts(strings: TemplateStringsArray): string {
+  const lines = strings[0].replaceAll("\r\n", "\n").split("\n");
+  if (!lines[0].trim()) lines.shift();
+  if (!lines.at(-1)?.trim()) lines.pop();
+  const indent = Math.min(
+    ...lines.filter((line) => line.trim()).map((line) =>
+      line.match(/^[ \t]*/)?.[0].length ?? 0
+    ),
+  );
+  return lines.map((line) => line.trim() ? line.slice(indent) : "").join("\n") +
+    "\n";
+}
+
+export function expectReordered(
+  input: string,
+  expected: string,
+  sortImports: ConstructorParameters<typeof ImportSorter>[0],
+  sortElements: ConstructorParameters<typeof ImportSorter>[1] = [],
+  separators: ConstructorParameters<typeof ImportSeparator>[0] = [],
+): void {
+  const { sourceFile, imports } = parseImports(input);
+  const sorted = new ImportSorter(sortImports, sortElements).sort(imports);
+  const separated = new ImportSeparator(separators).insertSeparator(sorted);
+  assert.equal(
+    new ImportIntegrator().integrate(sourceFile, separated),
+    expected,
+  );
+}
+
+// Compare declaration order without formatting the imports or inserting groups.
+export function expectImportOrder(
+  input: string,
+  expected: string,
+  comparator: (a: Import, b: Import) => number,
+): void {
+  const imports = parseImports(input).imports;
+  const expectedImports = parseImports(expected).imports;
+  assert.equal(imports.length, expectedImports.length);
+  new ImportSorter([comparator], []).sort(imports);
+  assert.deepEqual(
+    imports.map((imported) => input.slice(imported.start, imported.end)),
+    expectedImports.map((imported) =>
+      expected.slice(imported.start, imported.end)
+    ),
+  );
+}
+
+export function expectElementOrder(
+  input: string,
+  expected: string,
+  comparator: (a: ImportElement, b: ImportElement) => number,
+): void {
+  expectReordered(input, expected, [], [comparator]);
+}
+
+export function expectSeparation(
+  input: string,
+  separator: (a: Import, b: Import) => boolean,
+  expected: boolean,
+): void {
+  const imports = parseImports(input).imports;
+  assert.equal(imports.length, 2);
+  assert.equal(separator(imports[0], imports[1]), expected);
+}

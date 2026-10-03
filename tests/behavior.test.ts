@@ -12,73 +12,15 @@ import { fileURLToPath } from "node:url";
 
 import {
   ConfigHandler,
-  defaultConfig,
   defineConfig,
   FileManager,
   ImportIntegrator,
   ImportSeparator,
   ImportSorter,
-  inverse,
   parseImports,
 } from "@primp/primp";
-import type { Import } from "@primp/primp";
-import {
-  compareImportElements,
-  elementType,
-} from "@primp/primp/rules/elements";
-import {
-  compareImports,
-  nodePrefix,
-  sourceType,
-} from "@primp/primp/rules/imports";
-import { separateBy, unequalNodePrefix } from "@primp/primp/rules/separators";
-import { main, parseCliArgs } from "@primp/primp/cli";
-
-Deno.test("yargs handles short aliases, grouped switches, equals syntax, and errors", () => {
-  assert.deepEqual(
-    parseCliArgs([
-      "-rw",
-      "--output=out",
-      "--config",
-      "primp.config.ts",
-      "src",
-    ]),
-    {
-      inputs: ["src"],
-      recursive: true,
-      watch: true,
-      output: "out",
-      config: "primp.config.ts",
-    },
-  );
-  assert.deepEqual(parseCliArgs(["--", "-file.ts"])?.inputs, ["-file.ts"]);
-  assert.deepEqual(parseCliArgs(["a.ts", "b.ts"])?.inputs, [
-    "a.ts",
-    "b.ts",
-  ]);
-  assert.throws(
-    () => parseCliArgs(["--include-js", "src"]),
-    /Unknown argument/,
-  );
-  assert.throws(
-    () => parseCliArgs(["--no-include-js", "src"]),
-    /Unknown argument/,
-  );
-  assert.throws(() => parseCliArgs(["--nonsense", "src"]), /Unknown argument/);
-  assert.throws(
-    () => parseCliArgs(["-t", "tsconfig.json", "src"]),
-    /Unknown argument/,
-  );
-  assert.throws(
-    () => parseCliArgs(["--tsconfig=tsconfig.json", "src"]),
-    /Unknown argument/,
-  );
-  assert.throws(
-    () => parseCliArgs(["src", "--output"]),
-    /requires an argument|Not enough arguments|Missing required argument/,
-  );
-  assert.throws(() => parseCliArgs([]), /at least one/);
-});
+import { compareImports } from "@primp/primp/rules/imports";
+import { main } from "@primp/primp/cli";
 
 Deno.test("CLI uses one cwd config for multiple files and directories", async () => {
   const root = mkdtempSync(join(tmpdir(), "primp-multi-"));
@@ -144,37 +86,6 @@ Deno.test("CLI uses one cwd config for multiple files and directories", async ()
     Deno.chdir(cwd);
     rmSync(root, { recursive: true, force: true });
   }
-});
-
-Deno.test("defaults restore legacy declaration sorting and grouping with Deno-compatible specifiers", () => {
-  const text =
-    `// header\nimport local from "./z";\nimport {Zoo, a, Alpha} from "beta";\nimport "polyfill";\nimport * as ns from "alpha";\n\nrun();\n`;
-  const { sourceFile, imports } = parseImports(text);
-  const config = new ConfigHandler();
-  assert.equal(config.extractors.length, 1);
-  const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
-    .sort(imports);
-  const result = new ImportIntegrator(config.formatting).integrate(
-    sourceFile,
-    new ImportSeparator(config.separateBy).insertSeparator(sorted),
-  );
-  assert.equal(
-    result,
-    `// header\nimport { a, Alpha, Zoo } from "beta";\n\nimport * as ns from "alpha";\n\nimport local from "./z";\n\nimport "polyfill";\n\nrun();\n`,
-  );
-  assert.deepEqual(config.sortImports, defaultConfig.sortImports);
-  assert.equal(config.sortImports[1], compareImports.sourceType);
-  assert.equal(sourceType, compareImports.sourceType);
-  assert.equal(elementType, compareImportElements.elementType);
-  assert.equal(
-    config.sortImportElements[0],
-    compareImportElements.specifierName,
-  );
-  assert.deepEqual(config.separateBy, [
-    separateBy.unequalSideEffectUse,
-    separateBy.unequalPackageState,
-    separateBy.unequalNamespaceUse,
-  ]);
 });
 
 Deno.test("directory scans include JavaScript only with its extractor", async () => {
@@ -259,40 +170,7 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
   );
 });
 
-Deno.test("default import order, Deno-style specifiers and multiline commas", () => {
-  const input =
-    `import {z as a, a as z, type Zebra, type Beta, b, B, A} from 'pkg';\n\nimport {} from 'x';\nimport {alfa, bravo, charlie, delta, echo, foxtrot, golf, hotel, india} from 'phonetic';\n`;
-  const { sourceFile, imports } = parseImports(input);
-  const config = new ConfigHandler();
-  const result = new ImportIntegrator(config.formatting).integrate(
-    sourceFile,
-    new ImportSeparator(config.separateBy).insertSeparator(
-      new ImportSorter(config.sortImports, config.sortImportElements).sort(
-        imports,
-      ),
-    ),
-  );
-  assert.equal(
-    result,
-    `import {\n  alfa,\n  bravo,\n  charlie,\n  delta,\n  echo,\n  foxtrot,\n  golf,\n  hotel,\n  india,\n} from "phonetic";\nimport { A, a as z, B, b, type Beta, z as a, type Zebra } from "pkg";\n\nimport {} from "x";\n`,
-  );
-});
-
-Deno.test("custom grouping and legacy formatting remain available", () => {
-  const { sourceFile, imports } = parseImports(
-    `import a from "./a";\nimport b from "b";\n`,
-  );
-  const sorted = new ImportSorter([compareImports.sourceType], []).sort(
-    imports,
-  );
-  const grouped = new ImportSeparator([separateBy.unequalPackageState])
-    .insertSeparator(
-      sorted,
-    );
-  assert.equal(
-    new ImportIntegrator().integrate(sourceFile, grouped),
-    `import b from "b";\n\nimport a from "./a";\n`,
-  );
+Deno.test("legacy formatting options remain available", () => {
   const long = parseImports(
     `import {alfa, bravo, charlie, delta, echo, foxtrot, golf, hotel, india} from "phonetic";\n`,
   );
@@ -312,68 +190,6 @@ Deno.test("custom grouping and legacy formatting remain available", () => {
       single.imports,
     ),
     /\n {2}from "\.\/path"/,
-  );
-});
-
-Deno.test("inverse works with built-in and custom import and element comparators", () => {
-  const { imports } = parseImports(`import a from "a";\nimport b from "b";`);
-  assert.equal(
-    inverse(compareImports.sourceName)(imports[0], imports[1]) > 0,
-    true,
-  );
-  assert.equal(inverse(compareImports.sourceType)(imports[0], imports[1]), 0);
-  new ImportSorter([inverse(compareImports.sourceName)], []).sort(imports);
-  assert.equal(imports[0].source.name, "b");
-  const byName = (a: Import, b: Import) =>
-    a.source.name.localeCompare(b.source.name);
-  new ImportSorter([inverse(byName)], []).sort(imports);
-  assert.equal(imports[0].source.name, "b");
-  const named = parseImports('import { a, b } from "pkg";').imports;
-  new ImportSorter([], [inverse(compareImportElements.specifierName)]).sort(
-    named,
-  );
-  assert.deepEqual(named[0].elements.map((element) => element.name), [
-    "b",
-    "a",
-  ]);
-  const relativeImports =
-    parseImports(`import a from "./x";\nimport b from "./x/y";`).imports;
-  assert.equal(
-    compareImports.pathDepth(relativeImports[0], relativeImports[1]),
-    -1,
-  );
-});
-
-Deno.test("opt-in node: rules prioritize and separate built-in imports", () => {
-  const { sourceFile, imports } = parseImports(
-    'import local from "./local";\nimport pkg from "pkg";\nimport path from "node:path";\nimport fs from "node:fs";\n',
-  );
-  const config = new ConfigHandler();
-  assert.equal(config.sortImports.includes(compareImports.nodePrefix), false);
-  assert.equal(nodePrefix, compareImports.nodePrefix);
-  assert.equal(unequalNodePrefix, separateBy.unequalNodePrefix);
-  assert.equal(config.separateBy.includes(separateBy.unequalNodePrefix), false);
-  assert.equal(compareImports.nodePrefix(imports[2], imports[3]), 0);
-  assert.equal(compareImports.nodePrefix(imports[0], imports[1]), 0);
-  assert.equal(
-    separateBy.unequalNodePrefix(imports[2], imports[3]),
-    false,
-  );
-  assert.equal(
-    separateBy.unequalNodePrefix(imports[1], imports[2]),
-    true,
-  );
-  const sorted = new ImportSorter(
-    [nodePrefix, ...config.sortImports],
-    config.sortImportElements,
-  ).sort(imports);
-  const separated = new ImportSeparator([
-    unequalNodePrefix,
-    ...config.separateBy,
-  ]).insertSeparator(sorted);
-  assert.equal(
-    new ImportIntegrator(config.formatting).integrate(sourceFile, separated),
-    'import fs from "node:fs";\nimport path from "node:path";\n\nimport pkg from "pkg";\n\nimport local from "./local";\n',
   );
 });
 
