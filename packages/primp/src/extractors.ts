@@ -4,8 +4,10 @@ import { extname } from "node:path";
 export interface SourceSlice {
   /** Start offset in the original file (inclusive). */
   start: number;
+  
   /** End offset in the original file (exclusive). */
   end: number;
+  
   /** Code to parse; it may differ from the original slice after extraction. */
   content: string;
 }
@@ -14,6 +16,7 @@ export interface SourceSlice {
 export interface Extractor {
   /** Match an extension (e.g. `.vue`), a filename pattern, or a predicate. */
   extensions: string | RegExp | ((filename: string) => boolean);
+  
   /** Extract source sections without formatting them. */
   extract(source: string, filename: string): SourceSlice[];
 }

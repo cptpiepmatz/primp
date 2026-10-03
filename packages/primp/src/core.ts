@@ -9,30 +9,35 @@ export interface FormattingOptions {
    * Defaults to 2; also applies to an optionally wrapped `from` clause.
    */
   indent?: number;
+
   /**
    * Spaces inside single-line named-import braces.
    *
    * Defaults to 1.
    */
   bracketIndent?: number;
+
   /**
    * Quote style for module specifiers.
    *
    * Defaults to `"double"`.
    */
   quoteStyle?: "double" | "single";
+
   /**
    * Target line width before wrapping named specifiers.
    *
    * Defaults to 80.
    */
   maxColumns?: number;
+
   /**
    * Whether multiline named imports have a trailing comma.
    *
    * Defaults to true.
    */
   trailingComma?: boolean;
+
   /**
    * Whether to wrap an overflowing `from` clause.
    *
@@ -45,26 +50,33 @@ export interface FormattingOptions {
 export interface ImportElement {
   /** Local binding, e.g. `local` in `import { remote as local }`. */
   name: string;
+
   /** Imported name before `as`, or `*` for a namespace import. */
   originalName?: string;
+  
   /** Whether this is the default binding, held separately in {@link Import.defaultElement}. */
   isDefault: boolean;
+  
   /** Whether this is a namespace (`* as name`) binding. */
   isWildcard: boolean;
+  
   /** Whether an `as` binding was used (also true for namespace imports). */
   isRenamed: boolean;
+  
   /**
    * Whether the imported name starts with an uppercase letter.
    *
    * This is a sorting heuristic, not a check of TypeScript's type namespace.
    */
   isType: boolean;
+  
   /**
    * Whether the imported name does not start with an uppercase letter.
    *
    * This is the complement of {@link ImportElement.isType}.
    */
   isFunctionOrObject: boolean;
+  
   /** Whether this named specifier uses the inline `type` modifier. */
   isTypeOnly?: boolean;
 }
@@ -73,8 +85,10 @@ export interface ImportElement {
 export interface ImportSource {
   /** Unquoted module specifier, e.g. `./file.ts` or `package`. */
   name: string;
+  
   /** Whether the specifier is not relative, including `node:` specifiers. */
   isPackage: boolean;
+  
   /** Whether the specifier begins with `./` or `../`. */
   isRelative: boolean;
 }
@@ -111,20 +125,28 @@ function element(
 export class Import {
   /** Imported module and its package/relative classification. */
   readonly source: ImportSource;
+  
   /** Named specifiers or a namespace binding, excluding the default binding. */
   readonly elements: ImportElement[] = [];
+  
   /** Default binding, if present. */
   readonly defaultElement?: ImportElement;
+  
   /** Whether the entire declaration uses `import type`. */
   readonly isTypeOnly: boolean;
+  
   /** Whether the declaration uses `* as name`. */
   readonly isNamespace: boolean;
+  
   /** Whether the declaration uses named braces (including empty braces). */
   readonly isNamed: boolean;
+  
   /** Original `with` or `assert` import attributes, if present. */
   readonly attributes: string;
+  
   /** Start offset of the import declaration in its source file. */
   readonly start: number;
+  
   /** End offset of the import declaration in its source file. */
   readonly end: number;
 
