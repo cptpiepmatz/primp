@@ -74,9 +74,8 @@ export interface SeparateByFunction {
 export function inverse<T>(
   rule: (a: T, b: T) => number,
 ): (a: T, b: T) => number {
-  return (a, b) => {
-    const result = rule(a, b);
-    return result === 0 ? 0 : -result;
+  return function (a: T, b: T): number {
+    return -rule(a, b);
   };
 }
 
@@ -84,6 +83,7 @@ export function inverse<T>(
 export class ImportSorter {
   /** Ordered import-declaration comparators. */
   readonly sortImportOrder: ImportCompareFunction[];
+
   /** Ordered named-specifier comparators. */
   readonly sortImportElementOrder: ImportElementCompareFunction[];
 
@@ -110,7 +110,7 @@ export class ImportSorter {
   static chainCompareFunctions<T>(
     rules: ((a: T, b: T) => number)[],
   ): (a: T, b: T) => number {
-    return (a, b) => {
+    return function (a: T, b: T): number {
       for (const rule of rules) {
         const result = rule(a, b);
         if (result) return result;
@@ -130,7 +130,9 @@ export class ImportSorter {
   static inverseComparator<T>(
     rule: (a: T, b: T) => number,
   ): (a: T, b: T) => number {
-    return inverse(rule);
+    return function (a: T, b: T): number {
+      return -rule(a, b);
+    };
   }
 
   /**
@@ -142,13 +144,17 @@ export class ImportSorter {
    * @returns The same array, now sorted by the configured rules.
    */
   sort(imports: Import[]): Import[] {
-    const elements = ImportSorter.chainCompareFunctions(
+    const importCompare = ImportSorter.chainCompareFunctions(
+      this.sortImportOrder,
+    );
+    const importElementCompare = ImportSorter.chainCompareFunctions(
       this.sortImportElementOrder,
     );
-    for (const imported of imports) imported.sort(elements);
-    return imports.sort(
-      ImportSorter.chainCompareFunctions(this.sortImportOrder),
-    );
+
+    for (const imported of imports) {
+      imported.sort(importElementCompare);
+    }
+    return imports.sort(importCompare);
   }
 }
 

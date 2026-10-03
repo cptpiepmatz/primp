@@ -101,13 +101,11 @@ export class FileManager {
       const info = statSync(child);
       if (info.isDirectory() && recursive) {
         files.push(
-          ...[FileManager.getFiles(child, true, matchesFile)]
-            .flat(),
+          ...FileManager.getFiles(child, true, matchesFile) as string[],
         );
-      } else if (
-        info.isFile() &&
-        matchesFile(resolve(child))
-      ) files.push(child);
+      } else if (info.isFile() && matchesFile(resolve(child))) {
+        files.push(child);
+      }
     }
     return files;
   }

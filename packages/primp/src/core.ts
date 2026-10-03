@@ -165,16 +165,16 @@ export class Import {
     const isRelative = name.startsWith("./") || name.startsWith("../");
     this.source = { name, isRelative, isPackage: !isRelative };
     const clause = declaration.importClause;
+    const bindings = clause?.namedBindings;
     this.isTypeOnly = clause?.isTypeOnly ?? false;
-    this.isNamed = clause?.namedBindings?.kind === ts.SyntaxKind.NamedImports;
-    this.isNamespace =
-      clause?.namedBindings?.kind === ts.SyntaxKind.NamespaceImport;
+    this.isNamed = bindings?.kind === ts.SyntaxKind.NamedImports;
+    this.isNamespace = bindings?.kind === ts.SyntaxKind.NamespaceImport;
     this.attributes = declaration.attributes?.getText(sourceFile) ?? "";
     if (clause?.name) {
       this.defaultElement = element(clause.name.text, undefined, true);
     }
-    if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-      for (const specifier of clause.namedBindings.elements) {
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const specifier of bindings.elements) {
         this.elements.push(element(
           specifier.name.text,
           specifier.propertyName?.text,
@@ -182,10 +182,8 @@ export class Import {
           specifier.isTypeOnly,
         ));
       }
-    } else if (
-      clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)
-    ) {
-      this.elements.push(element(clause.namedBindings.name.text, "*"));
+    } else if (bindings && ts.isNamespaceImport(bindings)) {
+      this.elements.push(element(bindings.name.text, "*"));
     }
   }
 
@@ -228,50 +226,51 @@ export class Import {
       ...options,
     };
     const quote = quoteStyle === "single" ? "'" : '"';
+    const indentString = " ".repeat(indent);
+    const bracketIndentString = " ".repeat(bracketIndent);
     const names: string[] = [];
+    const specifiers: string[] = [];
     if (this.defaultElement) names.push(this.defaultElement.name);
     if (this.isNamed) {
-      const specifiers = this.elements.map((e) =>
-        `${e.isTypeOnly ? "type " : ""}${
-          e.originalName ? `${e.originalName} as ` : ""
-        }${e.name}`
-      );
-      names.push(
-        specifiers.length
-          ? `{${" ".repeat(bracketIndent)}${specifiers.join(", ")}${
-            " ".repeat(bracketIndent)
-          }}`
-          : "{}",
-      );
+      for (const imported of this.elements) {
+        let name = imported.isTypeOnly ? "type " : "";
+        if (imported.originalName) name += `${imported.originalName} as `;
+        specifiers.push(name + imported.name);
+      }
+      if (specifiers.length) {
+        names.push(
+          "{" + bracketIndentString + specifiers.join(", ") +
+            bracketIndentString + "}",
+        );
+      } else {
+        names.push("{}");
+      }
     }
     if (this.isNamespace) names.push(`* as ${this.elements[0].name}`);
-    const prefix = `import ${this.isTypeOnly ? "type " : ""}${
-      names.join(", ")
-    }${names.length ? " from " : ""}`;
+    let output = "import ";
+    if (this.isTypeOnly) output += "type ";
+    output += names.join(", ");
+    if (names.length) output += " from ";
     const escapedSource = this.source.name.replaceAll("\\", "\\\\").replaceAll(
       quote,
       `\\${quote}`,
     );
-    let output = `${prefix}${quote}${escapedSource}${quote}${
-      this.attributes ? ` ${this.attributes}` : ""
-    };`;
+    output += `${quote}${escapedSource}${quote}`;
+    if (this.attributes) output += ` ${this.attributes}`;
+    output += ";";
     const overflows = () =>
       output.split("\n").some((line) => line.length > maxColumns);
     if (overflows() && this.isNamed && this.elements.length > 1) {
       const start = output.indexOf("{");
       const end = output.indexOf("}", start);
       if (start !== -1 && end !== -1) {
-        output = `${output.slice(0, start)}{\n${" ".repeat(indent)}${
-          this.elements.map((e) =>
-            `${e.isTypeOnly ? "type " : ""}${
-              e.originalName ? `${e.originalName} as ` : ""
-            }${e.name}`
-          ).join(`,\n${" ".repeat(indent)}`)
-        }${trailingComma ? "," : ""}\n}${output.slice(end + 1)}`;
+        output = output.slice(0, start) + "{\n" + indentString +
+          specifiers.join(",\n" + indentString) +
+          (trailingComma ? "," : "") + "\n}" + output.slice(end + 1);
       }
     }
     if (breakFrom && overflows()) {
-      output = output.replace(" from ", `\n${" ".repeat(indent)}from `);
+      output = output.replace(" from ", `\n${indentString}from `);
     }
     return output;
   }
