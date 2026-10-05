@@ -64,13 +64,6 @@ export interface ImportElement {
   /** Whether an `as` binding was used (also true for namespace imports). */
   isRenamed: boolean;
 
-  /**
-   * Whether the imported name starts with an uppercase letter (before `as`).
-   *
-   * This is a sorting heuristic, not a check of TypeScript's type namespace.
-   */
-  startsWithUppercase: boolean;
-
   /** Whether this named specifier uses the inline `type` modifier. */
   isTypeOnly?: boolean;
 }
@@ -128,14 +121,12 @@ function element(
   isDefault = false,
   isTypeOnly = false,
 ): ImportElement {
-  const startsWithUppercase = /^[A-Z]/.test(originalName ?? name);
   return {
     name,
     originalName,
     isDefault,
     isWildcard: originalName === "*",
     isRenamed: originalName !== undefined,
-    startsWithUppercase,
     isTypeOnly,
   };
 }

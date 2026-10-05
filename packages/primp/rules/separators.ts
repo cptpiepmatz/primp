@@ -1,6 +1,11 @@
 /**
  * Built-in rules for separating adjacent imports with blank lines.
  *
+ * Each rule is named for the feature that defines a group. It returns `true`
+ * when exactly one of two adjacent imports has that feature, placing a blank
+ * line at the boundary. Unlike import comparators, separator rules do not
+ * determine which group comes first; configure sorting separately.
+ *
  * @module
  */
 

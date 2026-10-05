@@ -1,15 +1,28 @@
 /**
  * Built-in named-import-element comparators.
  *
+ * Rule names describe what is compared or which elements come first. A rule
+ * named for a feature puts elements with that feature first (compares them as
+ * lesser); names such as `lowercaseFirst` state the ordering directly. Name
+ * comparisons are ascending. Prefer `inverse(rule)` over a negatively named
+ * rule to reverse an ordering.
+ *
  * @module
  */
 
+import type { ImportElement } from "../src/core.ts";
 import type { ImportElementCompareFunction } from "../src/rules.ts";
+
+function startsWithUppercase(element: ImportElement): boolean {
+  return /^[A-Z]/.test(element.originalName ?? element.name);
+}
 
 /**
  * Compares two import elements based on their names split apart on capital
  * letters.
  * Then this runs the sub words in reverse order to check for likeness.
+ * This can group related type names by their shared suffix (such as `Base`),
+ * using capitalization as a heuristic rather than checking TypeScript types.
  * If all sub words are the same but one is longer this will be recognized as
  * equal.
  *
@@ -23,11 +36,9 @@ import type { ImportElementCompareFunction } from "../src/rules.ts";
  * // sorted
  * import {StartBase, OtherBase, Stuff, PowStuff} from "stuff";
  * ```
- *
- * @see ImportElement#startsWithUppercase
  */
 export const nameSuffix: ImportElementCompareFunction = function (a, b) {
-  if (!a.startsWithUppercase || !b.startsWithUppercase) return 0;
+  if (!startsWithUppercase(a) || !startsWithUppercase(b)) return 0;
 
   const matcher = /([A-Z][a-z]*)/g;
   const aMatches = a.name.match(matcher);
@@ -62,7 +73,9 @@ export const elementName: ImportElementCompareFunction = function (a, b) {
 
 /**
  * Puts lowercase-named elements before uppercase-named elements.
- * This uses a naming heuristic, not TypeScript's type namespace.
+ * This is a heuristic for grouping functions and objects (often lowercase)
+ * before types (often uppercase). It checks the imported name's capitalization,
+ * not whether an element is actually a TypeScript type or value.
  *
  * @example
  * ```ts
@@ -72,11 +85,9 @@ export const elementName: ImportElementCompareFunction = function (a, b) {
  * // sorted
  * import {a, d, B, C} from "alphabet";
  * ```
- *
- * @see ImportElement#startsWithUppercase
  */
 export const lowercaseFirst: ImportElementCompareFunction = function (a, b) {
-  return +a.startsWithUppercase - +b.startsWithUppercase;
+  return +startsWithUppercase(a) - +startsWithUppercase(b);
 };
 
 /**

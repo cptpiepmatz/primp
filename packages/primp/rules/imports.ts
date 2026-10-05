@@ -1,6 +1,13 @@
 /**
  * Built-in import-declaration comparators.
  *
+ * Rule names describe what is compared or which imports come first. A rule
+ * named for a feature (such as `nodePrefix`) puts imports with that feature
+ * first: they compare as lesser than imports without it. Name and path rules
+ * compare in ascending order. Prefer `inverse(rule)` over a negatively named
+ * rule for the opposite order, as the default config does for side-effect and
+ * namespace imports.
+ *
  * @module
  */
 
@@ -33,7 +40,8 @@ export const defaultImport: ImportCompareFunction = function (a, b) {
 
 /**
  * Compares default bindings by capitalization, putting uppercase names first.
- * This is a naming heuristic, not a check for TypeScript type-only imports.
+ * This can group type-like names before value-like names as a heuristic; it
+ * checks capitalization, not whether a binding is a TypeScript type.
  *
  * <i>This ignores imports without default imports.</i>
  *
@@ -49,14 +57,12 @@ export const defaultImport: ImportCompareFunction = function (a, b) {
  * import Beta from "Beta";
  * import alpha from "Alpha";
  * ```
- *
- * @see ImportElement#startsWithUppercase
  */
 export const uppercaseDefault: ImportCompareFunction = function (a, b) {
   const aDefault = a.defaultElement;
   const bDefault = b.defaultElement;
   if (!aDefault || !bDefault) return 0;
-  return +bDefault.startsWithUppercase - +aDefault.startsWithUppercase;
+  return +/^[A-Z]/.test(bDefault.name) - +/^[A-Z]/.test(aDefault.name);
 };
 
 /**
