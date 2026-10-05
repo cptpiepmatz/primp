@@ -1,12 +1,12 @@
 import { expect as stdExpect } from "@std/expect";
 
 import { ConfigHandler } from "@primp/primp";
-import * as separateBy from "@primp/primp/rules/separators";
+import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";
 
 Deno.test("unequalNamespaceUse separates namespace and ordinary imports", () => {
-  const separator = separateBy.unequalNamespaceUse;
+  const separateBy = [separators.unequalNamespaceUse];
 
   const input = ts`
     import * as first from "a";
@@ -26,11 +26,11 @@ Deno.test("unequalNamespaceUse separates namespace and ordinary imports", () => 
     import * as third from "e";
   `;
 
-  expect(input).viaSeparator(separator).toBe(expected);
+  expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
 Deno.test("unequalPackageState separates packages and relative imports", () => {
-  const separator = separateBy.unequalPackageState;
+  const separateBy = [separators.unequalPackageState];
 
   const input = ts`
     import pkg from "pkg";
@@ -50,11 +50,11 @@ Deno.test("unequalPackageState separates packages and relative imports", () => {
     import last from "last";
   `;
 
-  expect(input).viaSeparator(separator).toBe(expected);
+  expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
 Deno.test("unequalSideEffectUse separates side effects and bindings", () => {
-  const separator = separateBy.unequalSideEffectUse;
+  const separateBy = [separators.unequalSideEffectUse];
 
   const input = ts`
     import "a";
@@ -74,11 +74,11 @@ Deno.test("unequalSideEffectUse separates side effects and bindings", () => {
     import "e";
   `;
 
-  expect(input).viaSeparator(separator).toBe(expected);
+  expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
 Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
-  const separator = separateBy.unequalTypeOnlyUse;
+  const separateBy = [separators.unequalTypeOnlyUse];
 
   const input = ts`
     import type { A } from "a";
@@ -98,19 +98,19 @@ Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
     import type { E } from "e";
   `;
 
-  expect(input).viaSeparator(separator).toBe(expected);
+  expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
 Deno.test("unequalNodePrefix separates node: imports from other packages", () => {
   const config = new ConfigHandler();
   stdExpect(config.separateBy).toEqual([
-    separateBy.unequalSideEffectUse,
-    separateBy.unequalPackageState,
-    separateBy.unequalNamespaceUse,
+    separators.unequalSideEffectUse,
+    separators.unequalPackageState,
+    separators.unequalNamespaceUse,
   ]);
-  stdExpect(config.separateBy).not.toContain(separateBy.unequalNodePrefix);
+  stdExpect(config.separateBy).not.toContain(separators.unequalNodePrefix);
 
-  const separator = separateBy.unequalNodePrefix;
+  const separateBy = [separators.unequalNodePrefix];
 
   const input = ts`
     import fs from "node:fs";
@@ -130,5 +130,5 @@ Deno.test("unequalNodePrefix separates node: imports from other packages", () =>
     import url from "node:url";
   `;
 
-  expect(input).viaSeparator(separator).toBe(expected);
+  expect(input).viaRules({ separateBy }).toBe(expected);
 });

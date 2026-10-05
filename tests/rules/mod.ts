@@ -6,7 +6,6 @@ import {
   ImportSorter,
   parseImports,
 } from "@primp/primp";
-import type { Import, ImportElement } from "@primp/primp";
 
 // Indented TypeScript fixtures with a single final newline.
 // The ts tag can also be recognized by VS Code tagged-template highlighters.
@@ -25,54 +24,25 @@ export function ts(strings: TemplateStringsArray): string {
 
 export function expect(input: string) {
   return {
-    viaSeparator(separator: (a: Import, b: Import) => boolean) {
+    viaRules({
+      sortImports = [],
+      sortImportElements = [],
+      separateBy = [],
+      formatting,
+    }: {
+      sortImports?: ConstructorParameters<typeof ImportSorter>[0];
+      sortImportElements?: ConstructorParameters<typeof ImportSorter>[1];
+      separateBy?: ConstructorParameters<typeof ImportSeparator>[0];
+      formatting?: ConstructorParameters<typeof ImportIntegrator>[0];
+    }) {
       const { sourceFile, imports } = parseImports(input);
-      const separated = new ImportSeparator([separator]).insertSeparator(
+      const sorted = new ImportSorter(sortImports, sortImportElements).sort(
         imports,
       );
-      return stdExpect(new ImportIntegrator().integrate(sourceFile, separated));
+      const separated = new ImportSeparator(separateBy).insertSeparator(sorted);
+      return stdExpect(
+        new ImportIntegrator(formatting).integrate(sourceFile, separated),
+      );
     },
   };
-}
-
-export function expectReordered(
-  input: string,
-  expected: string,
-  sortImports: ConstructorParameters<typeof ImportSorter>[0],
-  sortElements: ConstructorParameters<typeof ImportSorter>[1] = [],
-  separators: ConstructorParameters<typeof ImportSeparator>[0] = [],
-): void {
-  const { sourceFile, imports } = parseImports(input);
-  const sorted = new ImportSorter(sortImports, sortElements).sort(imports);
-  const separated = new ImportSeparator(separators).insertSeparator(sorted);
-  stdExpect(new ImportIntegrator().integrate(sourceFile, separated)).toBe(
-    expected,
-  );
-}
-
-// Compare declaration order without formatting the imports or inserting groups.
-export function expectImportOrder(
-  input: string,
-  expected: string,
-  comparator: (a: Import, b: Import) => number,
-): void {
-  const imports = parseImports(input).imports;
-  const expectedImports = parseImports(expected).imports;
-  stdExpect(imports).toHaveLength(expectedImports.length);
-  new ImportSorter([comparator], []).sort(imports);
-  stdExpect(
-    imports.map((imported) => input.slice(imported.start, imported.end)),
-  ).toEqual(
-    expectedImports.map((imported) =>
-      expected.slice(imported.start, imported.end)
-    ),
-  );
-}
-
-export function expectElementOrder(
-  input: string,
-  expected: string,
-  comparator: (a: ImportElement, b: ImportElement) => number,
-): void {
-  expectReordered(input, expected, [], [comparator]);
 }

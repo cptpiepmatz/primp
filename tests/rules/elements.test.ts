@@ -1,84 +1,91 @@
-import { expect } from "@std/expect";
+import { expect as stdExpect } from "@std/expect";
 
-import { ConfigHandler, inverse, parseImports } from "@primp/primp";
+import { ConfigHandler, inverse } from "@primp/primp";
 import * as compareImportElements from "@primp/primp/rules/elements";
 
-import { expectElementOrder, expectReordered, ts } from "./mod.ts";
+import { expect, ts } from "./mod.ts";
 
 Deno.test("basenameGroup groups uppercase names by their ending words", () => {
-  const input = ts`
-    import { AlphaStuff, CharlieStuff, BetaItem, deltaObject } from "pkg";
-  `;
-  const expected = ts`
-    import { BetaItem, AlphaStuff, CharlieStuff, deltaObject } from "pkg";
-  `;
-  expectElementOrder(input, expected, compareImportElements.basenameGroup);
+  const sortImportElements = [compareImportElements.basenameGroup];
 
-  const [alpha, charlie, beta, otherBeta, delta] = parseImports(ts`
-    import { AlphaStuff, CharlieStuff, BetaItem, BetaItem as OtherBetaItem, deltaObject } from "pkg";
-  `).imports[0].elements;
-  const compare = compareImportElements.basenameGroup;
-  expect(compare(alpha, charlie)).toBeLessThan(0);
-  expect(compare(alpha, beta)).toBeGreaterThan(0);
-  expect(compare(charlie, beta)).toBeGreaterThan(0);
-  expect(compare(beta, otherBeta)).toBe(0);
-  expect(compare(delta, alpha)).toBe(0);
-  expect(compare(alpha, delta)).toBe(0);
+  const input = ts`
+    import {
+      AlphaStuff,
+      CharlieStuff,
+      BetaItem,
+      BetaItem as OtherBetaItem,
+      deltaObject,
+    } from "pkg";
+  `;
+
+  const expected = ts`
+    import {
+      BetaItem,
+      BetaItem as OtherBetaItem,
+      AlphaStuff,
+      CharlieStuff,
+      deltaObject,
+    } from "pkg";
+  `;
+
+  expect(input).viaRules({ sortImportElements }).toBe(expected);
 });
 
 Deno.test("elementName sorts local bindings alphabetically", () => {
+  const sortImportElements = [compareImportElements.elementName];
+
   const input = ts`
-    import { c, a, b } from "pkg";
+    import { a as z, c, z as a, b } from "pkg";
   `;
+
   const expected = ts`
-    import { a, b, c } from "pkg";
+    import { z as a, b, c, a as z } from "pkg";
   `;
-  expectElementOrder(input, expected, compareImportElements.elementName);
-  const [c, a, b] = parseImports(input).imports[0].elements;
-  const compare = compareImportElements.elementName;
-  expect(compare(a, b)).toBeLessThan(0);
-  expect(compare(a, c)).toBeLessThan(0);
-  expect(compare(b, a)).toBeGreaterThan(0);
-  expect(compare(b, c)).toBeLessThan(0);
-  expect(compare(c, a)).toBeGreaterThan(0);
-  expect(compare(c, b)).toBeGreaterThan(0);
+
+  expect(input).viaRules({ sortImportElements }).toBe(expected);
 });
 
 Deno.test("elementType groups lowercase names before uppercase names", () => {
+  const sortImportElements = [compareImportElements.elementType];
+
   const input = ts`
     import { B, a, D, c } from "pkg";
   `;
+
   const expected = ts`
     import { a, c, B, D } from "pkg";
   `;
-  const { elementType } = compareImportElements;
-  expectElementOrder(input, expected, elementType);
-  const [B, a, D, c] = parseImports(input).imports[0].elements;
-  expect(elementType(a, B)).toBeLessThan(0);
-  expect(elementType(a, c)).toBe(0);
-  expect(elementType(a, D)).toBeLessThan(0);
-  expect(elementType(B, a)).toBeGreaterThan(0);
-  expect(elementType(B, c)).toBeGreaterThan(0);
-  expect(elementType(B, D)).toBe(0);
-  expect(elementType(c, a)).toBe(0);
-  expect(elementType(c, B)).toBeLessThan(0);
-  expect(elementType(c, D)).toBeLessThan(0);
-  expect(elementType(D, a)).toBeGreaterThan(0);
-  expect(elementType(D, B)).toBe(0);
-  expect(elementType(D, c)).toBeGreaterThan(0);
+
+  expect(input).viaRules({ sortImportElements }).toBe(expected);
+});
+
+Deno.test("specifierName sorts original names without regard to case", () => {
+  const sortImportElements = [compareImportElements.specifierName];
+
+  const input = ts`
+    import { z as a, B, a as z, b } from "pkg";
+  `;
+
+  const expected = ts`
+    import { a as z, B, b, z as a } from "pkg";
+  `;
+
+  expect(input).viaRules({ sortImportElements }).toBe(expected);
 });
 
 Deno.test("default specifier rule sorts Deno-style names and retains multiline commas", () => {
   const config = new ConfigHandler();
-  expect(config.sortImportElements[0]).toBe(
+  stdExpect(config.sortImportElements[0]).toBe(
     compareImportElements.specifierName,
   );
+
   const input = ts`
     import {z as a, a as z, type Zebra, type Beta, b, B, A} from 'pkg';
 
     import {} from 'x';
     import {alfa, bravo, charlie, delta, echo, foxtrot, golf, hotel, india} from 'phonetic';
   `;
+
   const expected = ts`
     import {
       alfa,
@@ -95,20 +102,19 @@ Deno.test("default specifier rule sorts Deno-style names and retains multiline c
 
     import {} from "x";
   `;
-  expectReordered(
-    input,
-    expected,
-    config.sortImports,
-    config.sortImportElements,
-    config.separateBy,
-  );
+  expect(input).viaRules(config).toBe(expected);
 });
 
 Deno.test("inverse reverses the named specifier comparator", () => {
-  expectReordered(
-    ts`import { a, b } from "pkg";`,
-    ts`import { b, a } from "pkg";`,
-    [],
-    [inverse(compareImportElements.specifierName)],
-  );
+  const sortImportElements = [inverse(compareImportElements.specifierName)];
+
+  const input = ts`
+    import { a, b } from "pkg";
+  `;
+
+  const expected = ts`
+    import { b, a } from "pkg";
+  `;
+
+  expect(input).viaRules({ sortImportElements }).toBe(expected);
 });

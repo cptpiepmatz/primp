@@ -1,21 +1,15 @@
-import { expect } from "@std/expect";
+import { expect as stdExpect } from "@std/expect";
 
-import {
-  ConfigHandler,
-  defaultConfig,
-  ImportIntegrator,
-  ImportSeparator,
-  ImportSorter,
-  inverse,
-  parseImports,
-} from "@primp/primp";
+import { ConfigHandler, defaultConfig, inverse } from "@primp/primp";
 import type { Import } from "@primp/primp";
 import * as compareImports from "@primp/primp/rules/imports";
-import * as separateBy from "@primp/primp/rules/separators";
+import * as separators from "@primp/primp/rules/separators";
 
-import { expectImportOrder, expectReordered, ts } from "./mod.ts";
+import { expect, ts } from "./mod.ts";
 
 Deno.test("defaultPresence puts imports with default bindings first", () => {
+  const sortImports = [compareImports.defaultPresence];
+
   const input = ts`
     import {stuff} from "things";
     import {a, b, c} from "alpha";
@@ -24,18 +18,20 @@ Deno.test("defaultPresence puts imports with default bindings first", () => {
   `;
 
   const expected = ts`
-    import d, {e, f} from "beta";
+    import d, { e, f } from "beta";
     import random from "weird";
-    import {stuff} from "things";
-    import {a, b, c} from "alpha";
+    import { stuff } from "things";
+    import { a, b, c } from "alpha";
   `;
 
-  expectImportOrder(input, expected, compareImports.defaultPresence);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("defaultType orders uppercase defaults before lowercase defaults", () => {
+  const sortImports = [compareImports.defaultType];
+
   const input = ts`
-    import {gamma} from "Gamma";
+    import { gamma } from "Gamma";
     import alpha from "Alpha";
     import Beta from "Beta";
     import Delta from "Delta";
@@ -43,17 +39,19 @@ Deno.test("defaultType orders uppercase defaults before lowercase defaults", () 
   `;
 
   const expected = ts`
-    import {gamma} from "Gamma";
+    import { gamma } from "Gamma";
     import Beta from "Beta";
     import Delta from "Delta";
     import alpha from "Alpha";
     import epsilon from "Epsilon";
   `;
 
-  expectImportOrder(input, expected, compareImports.defaultType);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("namespacePresence puts namespace imports first", () => {
+  const sortImports = [compareImports.namespacePresence];
+
   const input = ts`
     import gamma from "Gamma";
     import alpha from "Alpha";
@@ -68,10 +66,12 @@ Deno.test("namespacePresence puts namespace imports first", () => {
     import alpha from "Alpha";
   `;
 
-  expectImportOrder(input, expected, compareImports.namespacePresence);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("pathDepth orders shallower relative paths first", () => {
+  const sortImports = [compareImports.pathDepth];
+
   const input = ts`
     import c from "PackageC";
     import d from "PackageD";
@@ -86,10 +86,12 @@ Deno.test("pathDepth orders shallower relative paths first", () => {
     import a from "./longer/path";
   `;
 
-  expectImportOrder(input, expected, compareImports.pathDepth);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("pathName orders relative parent directories", () => {
+  const sortImports = [compareImports.pathName];
+
   const input = ts`
     import e from "e";
     import f from "f";
@@ -108,10 +110,12 @@ Deno.test("pathName orders relative parent directories", () => {
     import c from "./alpha-beta/alpha/c";
   `;
 
-  expectImportOrder(input, expected, compareImports.pathName);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("sideEffect puts side-effect-only imports first", () => {
+  const sortImports = [compareImports.sideEffect];
+
   const input = ts`
     import a from "alpha";
     import "beta";
@@ -126,10 +130,12 @@ Deno.test("sideEffect puts side-effect-only imports first", () => {
     import c from "charlie";
   `;
 
-  expectImportOrder(input, expected, compareImports.sideEffect);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("sourceName sorts packages and leaves relative imports in place", () => {
+  const sortImports = [compareImports.sourceName];
+
   const input = ts`
     import c from "./c";
     import d from "./d";
@@ -144,10 +150,12 @@ Deno.test("sourceName sorts packages and leaves relative imports in place", () =
     import a from "beta";
   `;
 
-  expectImportOrder(input, expected, compareImports.sourceName);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("sourceType puts packages before relative imports", () => {
+  const sortImports = [compareImports.sourceType];
+
   const input = ts`
     import d from "./Delta";
     import b from "./Beta";
@@ -162,7 +170,7 @@ Deno.test("sourceType puts packages before relative imports", () => {
     import b from "./Beta";
   `;
 
-  expectImportOrder(input, expected, compareImports.sourceType);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("custom source grouping puts a blank line between packages and local imports", () => {
@@ -177,16 +185,15 @@ Deno.test("custom source grouping puts a blank line between packages and local i
     import a from "./a";
   `;
 
-  expectReordered(
-    input,
-    expected,
-    [compareImports.sourceType],
-    [],
-    [separateBy.unequalPackageState],
-  );
+  expect(input).viaRules({
+    sortImports: [compareImports.sourceType],
+    separateBy: [separators.unequalPackageState],
+  }).toBe(expected);
 });
 
 Deno.test("typeOnly puts type-only declarations before other imports", () => {
+  const sortImports = [compareImports.typeOnly];
+
   const input = ts`
     import { type Inline } from "inline";
     import type { Named } from "named";
@@ -205,14 +212,14 @@ Deno.test("typeOnly puts type-only declarations before other imports", () => {
     import "side-effect";
   `;
 
-  expectImportOrder(input, expected, compareImports.typeOnly);
+  expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
 Deno.test("default declaration rules sort and group imports", () => {
   const config = new ConfigHandler();
-  expect(config.extractors).toHaveLength(1);
-  expect(config.sortImports).toEqual(defaultConfig.sortImports);
-  expect(config.sortImports[1]).toBe(compareImports.sourceType);
+  stdExpect(config.extractors).toHaveLength(1);
+  stdExpect(config.sortImports).toEqual(defaultConfig.sortImports);
+  stdExpect(config.sortImports[1]).toBe(compareImports.sourceType);
 
   const input = ts`
     import local from "./z";
@@ -231,13 +238,7 @@ Deno.test("default declaration rules sort and group imports", () => {
     import "polyfill";
   `;
 
-  expectReordered(
-    input,
-    expected,
-    config.sortImports,
-    config.sortImportElements,
-    config.separateBy,
-  );
+  expect(input).viaRules(config).toBe(expected);
 });
 
 Deno.test("default rules preserve a header and following code", () => {
@@ -259,18 +260,12 @@ Deno.test("default rules preserve a header and following code", () => {
   `;
 
   const config = new ConfigHandler();
-  const { sourceFile, imports } = parseImports(input);
-  const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
-    .sort(imports);
-  expect(
-    new ImportIntegrator(config.formatting).integrate(
-      sourceFile,
-      new ImportSeparator(config.separateBy).insertSeparator(sorted),
-    ),
-  ).toBe(expected);
+  expect(input).viaRules(config).toBe(expected);
 });
 
-Deno.test("inverse reverses built-in and custom import comparators", () => {
+Deno.test("inverse reverses the source name sorter", () => {
+  const sortImports = [inverse(compareImports.sourceName)];
+
   const input = ts`
     import a from "a";
     import b from "b";
@@ -281,25 +276,56 @@ Deno.test("inverse reverses built-in and custom import comparators", () => {
     import a from "a";
   `;
 
-  const { imports } = parseImports(input);
-  expect(inverse(compareImports.sourceName)(imports[0], imports[1]))
-    .toBeGreaterThan(0);
-  expect(inverse(compareImports.sourceType)(imports[0], imports[1]))
-    .toBeCloseTo(0);
-  expectReordered(input, expected, [inverse(compareImports.sourceName)]);
+  expect(input).viaRules({ sortImports }).toBe(expected);
+});
+
+Deno.test("inverse puts relative imports first without reordering packages", () => {
+  const sortImports = [inverse(compareImports.sourceType)];
+
+  const input = ts`
+    import first from "a";
+    import local from "./local";
+    import second from "b";
+  `;
+
+  const expected = ts`
+    import local from "./local";
+    import first from "a";
+    import second from "b";
+  `;
+
+  expect(input).viaRules({ sortImports }).toBe(expected);
+});
+
+Deno.test("inverse reverses a custom import sorter", () => {
   const byName = (a: Import, b: Import) =>
     a.source.name.localeCompare(b.source.name);
-  expectReordered(input, expected, [inverse(byName)]);
+  const sortImports = [inverse(byName)];
 
-  const relativeImports = parseImports(ts`
-    import a from "./x";
-    import b from "./x/y";
-  `).imports;
-  expect(compareImports.pathDepth(relativeImports[0], relativeImports[1]))
-    .toBe(-1);
+  const input = ts`
+    import a from "a";
+    import b from "b";
+  `;
+
+  const expected = ts`
+    import b from "b";
+    import a from "a";
+  `;
+
+  expect(input).viaRules({ sortImports }).toBe(expected);
+});
+
+Deno.test("node: import rules are opt-in", () => {
+  const config = new ConfigHandler();
+  stdExpect(config.sortImports).not.toContain(compareImports.nodePrefix);
+  stdExpect(config.separateBy).not.toContain(separators.unequalNodePrefix);
 });
 
 Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
+  const config = new ConfigHandler();
+  const sortImports = [compareImports.nodePrefix, ...config.sortImports];
+  const separateBy = [separators.unequalNodePrefix, ...config.separateBy];
+
   const input = ts`
     import local from "./local";
     import pkg from "pkg";
@@ -316,17 +342,9 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
     import local from "./local";
   `;
 
-  const config = new ConfigHandler();
-  expect(config.sortImports).not.toContain(compareImports.nodePrefix);
-  expect(config.separateBy).not.toContain(separateBy.unequalNodePrefix);
-  const imports = parseImports(input).imports;
-  expect(compareImports.nodePrefix(imports[2], imports[3])).toBe(0);
-  expect(compareImports.nodePrefix(imports[0], imports[1])).toBe(0);
-  expectReordered(
-    input,
-    expected,
-    [compareImports.nodePrefix, ...config.sortImports],
-    config.sortImportElements,
-    [separateBy.unequalNodePrefix, ...config.separateBy],
-  );
+  expect(input).viaRules({
+    sortImports,
+    sortImportElements: config.sortImportElements,
+    separateBy,
+  }).toBe(expected);
 });
