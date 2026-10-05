@@ -18,6 +18,9 @@
 export { Import, ImportIntegrator, parseImports } from "./src/core.ts";
 export type {
   FormattingOptions,
+  ImportAttribute,
+  ImportAttributeKey,
+  ImportAttributes,
   ImportElement,
   ImportSource,
 } from "./src/core.ts";

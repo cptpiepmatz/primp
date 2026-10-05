@@ -138,6 +138,9 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
   const text =
     `import {type User as Person, z as a} from 'pkg' with { type: 'json' };\n`;
   const { sourceFile, imports } = parseImports(text);
+  assert.deepEqual(imports[0].attributes, {
+    with: [{ key: { name: "type", type: "identifier" }, value: "'json'" }],
+  });
   assert.equal(imports[0].elements[0].isTypeOnly, true);
   assert.equal(imports[0].elements[0].originalName, "User");
   assert.equal(
@@ -150,6 +153,33 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
   assert.equal(
     parseImports("const x = 1;\nimport z from 'z';").imports.length,
     0,
+  );
+  const plain = parseImports('import plain from "plain";').imports[0];
+  assert.deepEqual(plain.attributes, {});
+  assert.equal(plain.attributes.with, undefined);
+  assert.equal(plain.attributes.assert, undefined);
+  const asserted = parseImports(
+    'import data from "./data.json" assert { type: "json" };',
+  ).imports[0];
+  assert.deepEqual(asserted.attributes, {
+    assert: [{ key: { name: "type", type: "identifier" }, value: '"json"' }],
+  });
+  assert.equal(
+    asserted.toString(),
+    'import data from "./data.json" assert { type: "json" };',
+  );
+  const multiple = parseImports(
+    `import data from "./data.json" with { type: "json", "mode": 'strict' };`,
+  ).imports[0];
+  assert.deepEqual(multiple.attributes, {
+    with: [
+      { key: { name: "type", type: "identifier" }, value: '"json"' },
+      { key: { name: "mode", type: "stringLiteral" }, value: "'strict'" },
+    ],
+  });
+  assert.equal(
+    multiple.toString(),
+    `import data from "./data.json" with { type: "json", "mode": 'strict' };`,
   );
   assert.equal(new ImportSeparator([]).insertSeparator([]).length, 0);
   const invalid = parseImports('import { from "broken";\n');

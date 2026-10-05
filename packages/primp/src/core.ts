@@ -1,5 +1,6 @@
 import ts from "typescript";
 import type { SourceFile } from "typescript";
+import type { ImportElementCompareFunction } from "./rules.ts";
 
 /** Options for formatting rendered import declarations. */
 export interface FormattingOptions {
@@ -93,6 +94,32 @@ export interface ImportSource {
   isRelative: boolean;
 }
 
+/** The key of an import attribute. */
+export interface ImportAttributeKey {
+  /** Unquoted key text. */
+  name: string;
+
+  /** Syntax used for the key. */
+  type: "identifier" | "literal";
+}
+
+/** A key/value entry in an import attribute clause. */
+export interface ImportAttribute {
+  key: ImportAttributeKey;
+
+  /** Original quoted value text. */
+  value: string;
+}
+
+/** Import attribute entries, keyed by the clause keyword. */
+export interface ImportAttributes {
+  /** Entries in a `with` clause, if present. */
+  with?: ImportAttribute[];
+
+  /** Entries in an `assert` clause, if present. */
+  assert?: ImportAttribute[];
+}
+
 export const defaultFormattingOptions: Required<FormattingOptions> = {
   indent: 2,
   bracketIndent: 1,
@@ -142,7 +169,7 @@ export class Import {
   readonly isNamed: boolean;
 
   /** Original `with` or `assert` import attributes, if present. */
-  readonly attributes: string;
+  readonly attributes: ImportAttributes;
 
   /** Start offset of the import declaration in its source file. */
   readonly start: number;
@@ -169,7 +196,21 @@ export class Import {
     this.isTypeOnly = clause?.isTypeOnly ?? false;
     this.isNamed = bindings?.kind === ts.SyntaxKind.NamedImports;
     this.isNamespace = bindings?.kind === ts.SyntaxKind.NamespaceImport;
-    this.attributes = declaration.attributes?.getText(sourceFile) ?? "";
+    this.attributes = {};
+    if (declaration.attributes) {
+      const keyword = declaration.attributes.token === ts.SyntaxKind.WithKeyword
+        ? "with"
+        : "assert";
+      this.attributes[keyword] = declaration.attributes.elements.map((
+        entry,
+      ) => ({
+        key: {
+          name: entry.name.text,
+          type: ts.isIdentifier(entry.name) ? "identifier" : "literal",
+        },
+        value: entry.value.getText(sourceFile),
+      }));
+    }
     if (clause?.name) {
       this.defaultElement = element(clause.name.text, undefined, true);
     }
@@ -200,7 +241,7 @@ export class Import {
    * @param comparator Function comparing two specifiers.
    * @returns This import for chaining.
    */
-  sort(comparator: (a: ImportElement, b: ImportElement) => number): this {
+  sort(comparator: ImportElementCompareFunction): this {
     this.elements.sort(comparator);
     return this;
   }
@@ -256,7 +297,25 @@ export class Import {
       `\\${quote}`,
     );
     output += `${quote}${escapedSource}${quote}`;
-    if (this.attributes) output += ` ${this.attributes}`;
+    const attributeKind = this.attributes.with !== undefined
+      ? "with"
+      : this.attributes.assert !== undefined
+      ? "assert"
+      : undefined;
+    if (attributeKind) {
+      const entries = this.attributes[attributeKind] ?? [];
+      const rendered = entries.map(({ key, value }) => {
+        const name = key.type === "identifier"
+          ? key.name
+          : `${quote}${
+            key.name.replaceAll("\\", "\\\\").replaceAll(quote, `\\${quote}`)
+          }${quote}`;
+        return `${name}: ${value}`;
+      });
+      output += ` ${attributeKind} {${
+        rendered.length ? ` ${rendered.join(", ")} ` : ""
+      }}`;
+    }
     output += ";";
     const overflows = () =>
       output.split("\n").some((line) => line.length > maxColumns);
