@@ -1,4 +1,9 @@
-/** Extract script blocks from Vue single-file components. @module */
+/**
+ * Extract script blocks from Vue single-file components.
+ *
+ * @module
+ */
+
 import { parse } from "@vue/compiler-sfc";
 
 import type { Extractor, SourceSlice } from "@primp/primp";
