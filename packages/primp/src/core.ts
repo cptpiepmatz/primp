@@ -159,8 +159,8 @@ export class Import {
   /** Default binding, if present. */
   readonly defaultElement?: ImportElement;
 
-  /** Whether the entire declaration uses `import type`. */
-  readonly isTypeOnly: boolean;
+  /** Phase modifier following `import`, if present. */
+  readonly phaseModifier?: "type" | "defer";
 
   /** Whether the declaration uses `* as name`. */
   readonly isNamespace: boolean;
@@ -193,7 +193,11 @@ export class Import {
     this.source = { name, isRelative, isPackage: !isRelative };
     const clause = declaration.importClause;
     const bindings = clause?.namedBindings;
-    this.isTypeOnly = clause?.isTypeOnly ?? false;
+    this.phaseModifier = clause?.phaseModifier === ts.SyntaxKind.TypeKeyword
+      ? "type"
+      : clause?.phaseModifier === ts.SyntaxKind.DeferKeyword
+      ? "defer"
+      : undefined;
     this.isNamed = bindings?.kind === ts.SyntaxKind.NamedImports;
     this.isNamespace = bindings?.kind === ts.SyntaxKind.NamespaceImport;
     this.attributes = {};
@@ -289,7 +293,7 @@ export class Import {
     }
     if (this.isNamespace) names.push(`* as ${this.elements[0].name}`);
     let output = "import ";
-    if (this.isTypeOnly) output += "type ";
+    if (this.phaseModifier) output += `${this.phaseModifier} `;
     output += names.join(", ");
     if (names.length) output += " from ";
     const escapedSource = this.source.name.replaceAll("\\", "\\\\").replaceAll(

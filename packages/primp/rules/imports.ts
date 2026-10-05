@@ -247,5 +247,5 @@ export const sourceName: ImportCompareFunction = function (a, b) {
  * ```
  */
 export const typeOnly: ImportCompareFunction = function (a, b) {
-  return +(b.isTypeOnly) - +(a.isTypeOnly);
+  return +(b.phaseModifier === "type") - +(a.phaseModifier === "type");
 };

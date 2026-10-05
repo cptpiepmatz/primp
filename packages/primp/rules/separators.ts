@@ -76,12 +76,12 @@ export const unequalSideEffectUse: SeparateByFunction = function (l, f) {
  *
  * import c from "charlie";
  * ```
- * @see Import#isTypeOnly
+ * @see Import#phaseModifier
  * @param l Leading Import
  * @param f Following Import
  */
 export const unequalTypeOnlyUse: SeparateByFunction = function (l, f) {
-  return l.isTypeOnly !== f.isTypeOnly;
+  return (l.phaseModifier === "type") !== (f.phaseModifier === "type");
 };
 
 /**

@@ -198,6 +198,7 @@ Deno.test("typeOnly puts type-only declarations before other imports", () => {
     import { type Inline } from "inline";
     import type { Named } from "named";
     import value from "value";
+    import defer * as Lazy from "lazy";
     import type Default from "default";
     import "side-effect";
     import type * as Namespace from "namespace";
@@ -209,6 +210,7 @@ Deno.test("typeOnly puts type-only declarations before other imports", () => {
     import type * as Namespace from "namespace";
     import { type Inline } from "inline";
     import value from "value";
+    import defer * as Lazy from "lazy";
     import "side-effect";
   `;
 

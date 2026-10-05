@@ -83,6 +83,7 @@ Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
   const input = ts`
     import type { A } from "a";
     import b from "b";
+    import defer * as Lazy from "lazy";
     import c from "c";
     import type { D } from "d";
     import type { E } from "e";
@@ -92,6 +93,7 @@ Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
     import type { A } from "a";
 
     import b from "b";
+    import defer * as Lazy from "lazy";
     import c from "c";
 
     import type { D } from "d";

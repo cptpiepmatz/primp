@@ -170,6 +170,24 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
   ).toBe(commented);
 });
 
+Deno.test("declaration phase modifiers parse and render independently of inline type", () => {
+  const text =
+    'import type { A } from "types";\nimport defer * as ns from "lazy";\nimport { type B } from "mixed";\n';
+  const { sourceFile, imports } = parseImports(text);
+  expect(imports.map((imported) => imported.phaseModifier)).toEqual([
+    "type",
+    "defer",
+    undefined,
+  ]);
+  expect(imports[2].elements[0].isTypeOnly).toBe(true);
+  expect(imports.map((imported) => imported.toString())).toEqual([
+    'import type { A } from "types";',
+    'import defer * as ns from "lazy";',
+    'import { type B } from "mixed";',
+  ]);
+  expect(new ImportIntegrator().integrate(sourceFile, imports)).toBe(text);
+});
+
 Deno.test("legacy formatting options remain available", () => {
   const long = parseImports(
     `import {alfa, bravo, charlie, delta, echo, foxtrot, golf, hotel, india} from "phonetic";\n`,
