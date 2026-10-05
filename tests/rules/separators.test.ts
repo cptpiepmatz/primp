@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 
 import { ConfigHandler } from "@primp/primp";
-import { compareImports } from "@primp/primp/rules/imports";
-import { separateBy, unequalNodePrefix } from "@primp/primp/rules/separators";
+import { sourceType } from "@primp/primp/rules/imports";
+import * as separateBy from "@primp/primp/rules/separators";
 
 import { expectReordered, expectSeparation, ts } from "./mod.ts";
 
@@ -127,7 +127,7 @@ Deno.test("custom source grouping puts a blank line between packages and local i
   expectReordered(
     input,
     expected,
-    [compareImports.sourceType],
+    [sourceType],
     [],
     [separateBy.unequalPackageState],
   );
@@ -140,14 +140,13 @@ Deno.test("unequalNodePrefix separates node: imports from other packages", () =>
     separateBy.unequalPackageState,
     separateBy.unequalNamespaceUse,
   ]);
-  assert.equal(unequalNodePrefix, separateBy.unequalNodePrefix);
   assert.equal(config.separateBy.includes(separateBy.unequalNodePrefix), false);
   expectSeparation(
     ts`
     import fs from "node:fs";
     import path from "node:path";
   `,
-    unequalNodePrefix,
+    separateBy.unequalNodePrefix,
     false,
   );
   expectSeparation(
@@ -155,7 +154,7 @@ Deno.test("unequalNodePrefix separates node: imports from other packages", () =>
     import pkg from "pkg";
     import fs from "node:fs";
   `,
-    unequalNodePrefix,
+    separateBy.unequalNodePrefix,
     true,
   );
 });

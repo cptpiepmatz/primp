@@ -10,12 +10,8 @@ import {
   parseImports,
 } from "@primp/primp";
 import type { Import } from "@primp/primp";
-import {
-  compareImports,
-  nodePrefix,
-  sourceType,
-} from "@primp/primp/rules/imports";
-import { separateBy, unequalNodePrefix } from "@primp/primp/rules/separators";
+import * as compareImports from "@primp/primp/rules/imports";
+import * as separateBy from "@primp/primp/rules/separators";
 
 import { expectImportOrder, expectReordered, ts } from "./mod.ts";
 
@@ -150,8 +146,7 @@ Deno.test("sourceType puts packages before relative imports", () => {
     import d from "./Delta";
     import b from "./Beta";
   `;
-  assert.equal(sourceType, compareImports.sourceType);
-  expectImportOrder(input, expected, sourceType);
+  expectImportOrder(input, expected, compareImports.sourceType);
 });
 
 Deno.test("default declaration rules sort and group imports", () => {
@@ -227,7 +222,7 @@ Deno.test("inverse reverses built-in and custom import comparators", () => {
     inverse(compareImports.sourceName)(imports[0], imports[1]) > 0,
     true,
   );
-  assert.equal(inverse(compareImports.sourceType)(imports[0], imports[1]), 0);
+  assert.ok(inverse(compareImports.sourceType)(imports[0], imports[1]) === 0);
   expectReordered(input, expected, [inverse(compareImports.sourceName)]);
   const byName = (a: Import, b: Import) =>
     a.source.name.localeCompare(b.source.name);
@@ -260,7 +255,6 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
   `;
   const config = new ConfigHandler();
   assert.equal(config.sortImports.includes(compareImports.nodePrefix), false);
-  assert.equal(nodePrefix, compareImports.nodePrefix);
   assert.equal(config.separateBy.includes(separateBy.unequalNodePrefix), false);
   const imports = parseImports(input).imports;
   assert.equal(compareImports.nodePrefix(imports[2], imports[3]), 0);
@@ -268,8 +262,8 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
   expectReordered(
     input,
     expected,
-    [nodePrefix, ...config.sortImports],
+    [compareImports.nodePrefix, ...config.sortImports],
     config.sortImportElements,
-    [unequalNodePrefix, ...config.separateBy],
+    [separateBy.unequalNodePrefix, ...config.separateBy],
   );
 });

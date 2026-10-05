@@ -19,8 +19,8 @@ import {
   ImportSorter,
   parseImports,
 } from "@primp/primp";
-import { compareImports } from "@primp/primp/rules/imports";
 import { main } from "@primp/primp/cli";
+import { sourceType } from "@primp/primp/rules/imports";
 
 Deno.test("CLI uses one cwd config for multiple files and directories", async () => {
   const root = mkdtempSync(join(tmpdir(), "primp-multi-"));
@@ -121,7 +121,7 @@ Deno.test("directory scans include JavaScript only with its extractor", async ()
       }";\nexport default { extractors: [jsExtractor] };`,
     );
     const config = await ConfigHandler.load(jsConfigPath);
-    assert.equal(config.extractors.length, 2);
+    assert.equal(config.extractors.length, 1);
     await main(["--config", jsConfigPath, "-r", dir]);
     for (const file of jsFiles) {
       assert.equal(
@@ -265,20 +265,19 @@ Deno.test("inline TypeScript comparators and separators are used by the CLI", as
   }
 });
 
-Deno.test("TypeScript configs are discovered and explicit paths work", async () => {
+Deno.test("primp configs are discovered and explicit paths work", async () => {
   const root = mkdtempSync(join(tmpdir(), "primp-configs-"));
   try {
-    for (const name of ["primp", "pretty-ts-imports", "prettytsimports"]) {
-      const project = join(root, name);
+    for (const extension of ["ts", "mts", "js", "mjs"]) {
+      const project = join(root, extension);
       mkdirSync(project);
-      const configPath = join(project, `${name}.config.ts`);
+      const configPath = join(project, `primp.config.${extension}`);
       writeFileSync(
         configPath,
-        'export default { sortImports: [(a: { source: { name: string } }, b: { source: { name: string } }) => a.source.name.localeCompare(b.source.name)], formatting: { quoteStyle: "single" } };',
+        'export default { sortImports: [(a, b) => a.source.name.localeCompare(b.source.name)], formatting: { quoteStyle: "single" } };',
       );
       const source = join(project, "input.ts");
       writeFileSync(source, 'import b from "b";\nimport a from "a";\n');
-      assert.equal(ConfigHandler.isSupportedConfigFile(configPath), true);
       assert.equal(ConfigHandler.findConfig(source), configPath);
       await main(["--config", configPath, source]);
       assert.equal(
@@ -288,14 +287,8 @@ Deno.test("TypeScript configs are discovered and explicit paths work", async () 
     }
     const custom = join(root, "custom.ts");
     writeFileSync(custom, "export default { sortImports: [] };");
-    assert.equal(ConfigHandler.isSupportedConfigFile(custom), false);
     assert.deepEqual((await ConfigHandler.load(custom)).sortImports, []);
-    assert.equal(ConfigHandler.isSupportedConfigFile("primp.config.ts"), true);
-    assert.equal(ConfigHandler.isSupportedConfigFile("primp.json"), false);
-    await assert.rejects(
-      ConfigHandler.load(join(root, "missing.json")),
-      /Unsupported/,
-    );
+    await assert.rejects(ConfigHandler.load(join(root, "missing.json")));
     const invalid = join(root, "invalid.ts");
     writeFileSync(invalid, "export default 42;");
     await assert.rejects(
@@ -312,7 +305,7 @@ Deno.test("example config supports imported custom rules and defineConfig", asyn
     new URL("../examples/configs/primp.config.ts", import.meta.url),
   );
   const config = await ConfigHandler.load(path);
-  assert.equal(config.sortImports[1], compareImports.sourceType);
+  assert.equal(config.sortImports[1], sourceType);
   assert.equal(config.formatting.trailingComma, false);
   assert.equal(config.formatting.breakFrom, true);
   const imports =

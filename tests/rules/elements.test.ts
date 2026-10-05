@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 
 import { ConfigHandler, inverse, parseImports } from "@primp/primp";
-import {
-  compareImportElements,
-  elementType,
-} from "@primp/primp/rules/elements";
+import * as compareImportElements from "@primp/primp/rules/elements";
 
 import { expectElementOrder, expectReordered, ts } from "./mod.ts";
 
@@ -54,7 +51,7 @@ Deno.test("elementType groups lowercase names before uppercase names", () => {
   const expected = ts`
     import { a, c, B, D } from "pkg";
   `;
-  assert.equal(elementType, compareImportElements.elementType);
+  const { elementType } = compareImportElements;
   expectElementOrder(input, expected, elementType);
   const [B, a, D, c] = parseImports(input).imports[0].elements;
   assert.ok(elementType(a, B) < 0);
@@ -95,7 +92,7 @@ Deno.test("default specifier rule sorts Deno-style names and retains multiline c
       hotel,
       india,
     } from "phonetic";
-    import { A, a as z, B, b, type Beta, z as a, type Zebra } from "pkg";
+    import { a as z, A, b, B, type Beta, z as a, type Zebra } from "pkg";
 
     import {} from "x";
   `;

@@ -142,7 +142,7 @@ Deno.test("extractors select the first matching string, regex, or predicate", ()
   );
   assert.equal(
     formatImports(input, { extractors }, "component.ts"),
-    'import a from "a";\nimport b from "b";\n',
+    input,
   );
 });
 

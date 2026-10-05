@@ -20,7 +20,7 @@ import {
   ImportSorter,
   parseImports,
 } from "../packages/primp/mod.ts";
-import { compareImports, sourceName } from "../packages/primp/rules/imports.ts";
+import { sourceName } from "../packages/primp/rules/imports.ts";
 import * as api from "../packages/primp/mod.ts";
 
 test("Node imports the ESM entry point and formats imports", () => {
@@ -28,7 +28,6 @@ test("Node imports the ESM entry point and formats imports", () => {
   const { sourceFile, imports } = parseImports(
     'import b from "b";\nimport a from "a";\n',
   );
-  assert.equal(sourceName, compareImports.sourceName);
   const sorted = new ImportSorter([sourceName], []).sort(
     imports,
   );
