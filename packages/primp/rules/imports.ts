@@ -141,6 +141,29 @@ export const pathName: ImportCompareFunction = function (a, b) {
 };
 
 /**
+ * Compares two imports whether they are for side effects only or not.
+ * Imports with only side effects are considered lesser (higher position).
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import a from "alpha";
+ * import "beta";
+ * import c from "charlie";
+ *
+ * // sorted
+ * import "beta";
+ * import a from "alpha";
+ * import c from "charlie";
+ * ```
+ */
+export const sideEffect: ImportCompareFunction = function (a, b) {
+  const aDefault = a.isSideEffectOnly ? 0 : 1;
+  const bDefault = b.isSideEffectOnly ? 0 : 1;
+  return aDefault - bDefault;
+};
+
+/**
  * Compares two import sources whether they are relatives or packages.
  * A relative path is considered greater (positioned lower).
  *
