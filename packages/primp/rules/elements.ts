@@ -18,6 +18,23 @@ function startsWithUppercase(element: ImportElement): boolean {
 }
 
 /**
+ * Puts aliased named specifiers before unaliased ones. Namespace bindings are
+ * also marked as renamed, but are the only element in their declaration.
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import { a, b as localB, c } from "pkg";
+ *
+ * // sorted
+ * import { b as localB, a, c } from "pkg";
+ * ```
+ */
+export const aliased: ImportElementCompareFunction = function (a, b) {
+  return +b.isRenamed - +a.isRenamed;
+};
+
+/**
  * Compares two import elements based on their names split apart on capital
  * letters.
  * Then this runs the sub words in reverse order to check for likeness.
@@ -106,4 +123,21 @@ export const lowercaseFirst: ImportElementCompareFunction = function (a, b) {
 export const specifierName: ImportElementCompareFunction = function (a, b) {
   const [aName, bName] = [a, b].map((m) => m.originalName ?? m.name);
   return aName.toLowerCase().localeCompare(bName.toLowerCase());
+};
+
+/**
+ * Puts inline `type` specifiers before value specifiers within an import.
+ * Declaration-level `import type` is handled by the import `typeOnly` rule.
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import { value, type Model, other } from "pkg";
+ *
+ * // sorted
+ * import { type Model, value, other } from "pkg";
+ * ```
+ */
+export const inlineType: ImportElementCompareFunction = function (a, b) {
+  return +(b.isTypeOnly === true) - +(a.isTypeOnly === true);
 };

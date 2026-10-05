@@ -165,6 +165,18 @@ export const directoryName: ImportCompareFunction = function (a, b) {
   return 0;
 };
 
+/** Puts `import defer` declarations before other imports. */
+export const deferred: ImportCompareFunction = function (a, b) {
+  return +(b.phaseModifier === "defer") - +(a.phaseModifier === "defer");
+};
+
+/** Puts imports with a `with` or `assert` attribute clause first. */
+export const importAttributes: ImportCompareFunction = function (a, b) {
+  const hasAttributes = (m: Import) =>
+    m.attributes.with !== undefined || m.attributes.assert !== undefined;
+  return +hasAttributes(b) - +hasAttributes(a);
+};
+
 /**
  * Compares two imports whether they are for side effects only or not.
  * Imports with only side effects are considered lesser (higher position).
@@ -212,6 +224,15 @@ export const packageFirst: ImportCompareFunction = function (a, b) {
   const aPackage = a.source.isPackage ? 0 : 1;
   const bPackage = b.source.isPackage ? 0 : 1;
   return aPackage - bPackage;
+};
+
+/**
+ * Puts parent-directory (`../`) imports before same-directory (`./`) imports.
+ * Leaves package imports undecided for other rules to order.
+ */
+export const parentPath: ImportCompareFunction = function (a, b) {
+  if (!a.source.isRelative || !b.source.isRelative) return 0;
+  return +b.source.name.startsWith("../") - +a.source.name.startsWith("../");
 };
 
 /**

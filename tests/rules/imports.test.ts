@@ -113,6 +113,67 @@ Deno.test("directoryName orders relative parent directories", () => {
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
+Deno.test("parentPath puts parent paths ahead of same-directory paths", () => {
+  const input = ts`
+    import pkg from "pkg";
+    import local from "./local";
+    import parent from "../parent";
+    import nested from "../../nested";
+    import other from "./other";
+  `;
+  const expected = ts`
+    import pkg from "pkg";
+    import parent from "../parent";
+    import nested from "../../nested";
+    import local from "./local";
+    import other from "./other";
+  `;
+
+  expect(input).viaRules({ sortImports: [compareImports.parentPath] }).toBe(
+    expected,
+  );
+});
+
+Deno.test("deferred puts deferred imports ahead of other declarations", () => {
+  const input = ts`
+    import value from "value";
+    import defer * as Lazy from "lazy";
+    import type { Model } from "types";
+    import defer * as Other from "other";
+  `;
+  const expected = ts`
+    import defer * as Lazy from "lazy";
+    import defer * as Other from "other";
+    import value from "value";
+    import type { Model } from "types";
+  `;
+
+  expect(input).viaRules({ sortImports: [compareImports.deferred] }).toBe(
+    expected,
+  );
+});
+
+Deno.test("importAttributes groups with and assert clauses, including empty ones", () => {
+  const input = ts`
+    import plain from "plain";
+    import json from "json" with { type: "json" };
+    import other from "other";
+    import legacy from "legacy" assert { type: "json" };
+    import empty from "empty" with {};
+  `;
+  const expected = ts`
+    import json from "json" with { type: "json" };
+    import legacy from "legacy" assert { type: "json" };
+    import empty from "empty" with {};
+    import plain from "plain";
+    import other from "other";
+  `;
+
+  expect(input).viaRules({
+    sortImports: [compareImports.importAttributes],
+  }).toBe(expected);
+});
+
 Deno.test("sideEffect puts side-effect-only imports first", () => {
   const sortImports = [compareImports.sideEffect];
 

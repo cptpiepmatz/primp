@@ -35,6 +35,18 @@ export const nodePrefix: SeparateByFunction = function (l, f) {
   return leadingIsNode !== followingIsNode;
 };
 
+/** Separate `import defer` declarations from other imports. */
+export const deferred: SeparateByFunction = function (l, f) {
+  return (l.phaseModifier === "defer") !== (f.phaseModifier === "defer");
+};
+
+/** Separate imports with `with` or `assert` attributes from other imports. */
+export const importAttributes: SeparateByFunction = function (l, f) {
+  const hasAttributes = (m: typeof l) =>
+    m.attributes.with !== undefined || m.attributes.assert !== undefined;
+  return hasAttributes(l) !== hasAttributes(f);
+};
+
 /**
  * Place a separator between two imports if one of them is importing only for
  * side effects.
@@ -119,6 +131,13 @@ export const typeOnly: SeparateByFunction = function (l, f) {
  */
 export const packageSource: SeparateByFunction = function (l, f) {
   return l.source.isPackage !== f.source.isPackage;
+};
+
+/** Separate parent-directory (`../`) imports from same-directory (`./`) imports. */
+export const parentPath: SeparateByFunction = function (l, f) {
+  if (!l.source.isRelative || !f.source.isRelative) return false;
+  return l.source.name.startsWith("../") !==
+    f.source.name.startsWith("../");
 };
 
 /**

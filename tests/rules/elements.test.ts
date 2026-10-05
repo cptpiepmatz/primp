@@ -4,6 +4,19 @@ import * as compareImportElements from "@primp/primp/rules/elements";
 
 import { expect, ts } from "./mod.ts";
 
+Deno.test("aliased groups renamed specifiers ahead of ordinary bindings", () => {
+  const input = ts`
+    import { a, b as localB, c, d as localD } from "pkg";
+  `;
+  const expected = ts`
+    import { b as localB, d as localD, a, c } from "pkg";
+  `;
+
+  expect(input).viaRules({
+    sortImportElements: [compareImportElements.aliased],
+  }).toBe(expected);
+});
+
 Deno.test("nameSuffix groups uppercase names by their ending words", () => {
   const sortImportElements = [compareImportElements.nameSuffix];
 
@@ -70,6 +83,19 @@ Deno.test("specifierName sorts original names without regard to case", () => {
   `;
 
   expect(input).viaRules({ sortImportElements }).toBe(expected);
+});
+
+Deno.test("inlineType groups inline type specifiers ahead of values", () => {
+  const input = ts`
+    import { value, type Model, other, type Options } from "pkg";
+  `;
+  const expected = ts`
+    import { type Model, type Options, value, other } from "pkg";
+  `;
+
+  expect(input).viaRules({
+    sortImportElements: [compareImportElements.inlineType],
+  }).toBe(expected);
 });
 
 Deno.test("default specifier rule sorts Deno-style names and retains multiline commas", () => {

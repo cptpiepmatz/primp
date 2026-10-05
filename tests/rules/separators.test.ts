@@ -4,6 +4,46 @@ import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";
 
+Deno.test("deferred separates deferred imports from other imports", () => {
+  const input = ts`
+    import defer * as First from "first";
+    import defer * as Second from "second";
+    import plain from "plain";
+    import defer * as Third from "third";
+  `;
+  const expected = ts`
+    import defer * as First from "first";
+    import defer * as Second from "second";
+
+    import plain from "plain";
+
+    import defer * as Third from "third";
+  `;
+
+  expect(input).viaRules({ separateBy: [separators.deferred] }).toBe(expected);
+});
+
+Deno.test("importAttributes separates attributed imports from plain imports", () => {
+  const input = ts`
+    import json from "json" with { type: "json" };
+    import legacy from "legacy" assert { type: "json" };
+    import plain from "plain";
+    import empty from "empty" with {};
+  `;
+  const expected = ts`
+    import json from "json" with { type: "json" };
+    import legacy from "legacy" assert { type: "json" };
+
+    import plain from "plain";
+
+    import empty from "empty" with {};
+  `;
+
+  expect(input).viaRules({
+    separateBy: [separators.importAttributes],
+  }).toBe(expected);
+});
+
 Deno.test("namespace separates namespace and ordinary imports", () => {
   const separateBy = [separators.namespace];
 
@@ -50,6 +90,33 @@ Deno.test("packageSource separates packages and relative imports", () => {
   `;
 
   expect(input).viaRules({ separateBy }).toBe(expected);
+});
+
+Deno.test("parentPath separates parent paths from same-directory paths", () => {
+  const input = ts`
+    import pkg from "pkg";
+    import parent from "../parent";
+    import nested from "../../nested";
+    import local from "./local";
+    import other from "./other";
+    import again from "../again";
+    import next from "next";
+  `;
+  const expected = ts`
+    import pkg from "pkg";
+    import parent from "../parent";
+    import nested from "../../nested";
+
+    import local from "./local";
+    import other from "./other";
+
+    import again from "../again";
+    import next from "next";
+  `;
+
+  expect(input).viaRules({ separateBy: [separators.parentPath] }).toBe(
+    expected,
+  );
 });
 
 Deno.test("sideEffect separates side effects and bindings", () => {
