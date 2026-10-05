@@ -139,6 +139,23 @@ test("Node executes the transpiled CLI without TypeScript support", () => {
     });
     assert.equal(version.status, 0, version.stderr);
     assert.match(version.stdout, /^2\.0\.0\s*$/);
+    const input = join(dir, "input.ts");
+    const config = join(dir, "primp.config.mjs");
+    const original = 'import z from "z";\nimport a from "a";\n';
+    writeFileSync(config, "export default {};\n");
+    writeFileSync(input, original);
+    const check = () =>
+      spawnSync(process.execPath, [cli, "--check", "--config", config, input], {
+        encoding: "utf8",
+      });
+    const dirty = check();
+    assert.equal(dirty.status, 1, dirty.stderr);
+    assert.equal(dirty.stdout.trim(), input);
+    assert.equal(readFileSync(input, "utf8"), original);
+    writeFileSync(input, 'import a from "a";\nimport z from "z";\n');
+    const clean = check();
+    assert.equal(clean.status, 0, clean.stderr);
+    assert.equal(clean.stdout, "");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

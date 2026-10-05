@@ -84,6 +84,8 @@ Use flags to control how primp handles your files:
 - `-o, --output DIR` write to another directory instead of updating in place
 - `-c, --config FILE` select a config file
 - `-w, --watch` watch the selected files after the first pass
+- `--check` list files needing formatting without writing; exit 1 if any differ,
+  0 if all are formatted (cannot be combined with `--watch` or `--output`)
 - `--help` show usage; `--version` show the package version
 
 Directory searches include `.ts`, `.tsx`, `.mts`, and `.cts` files by default,

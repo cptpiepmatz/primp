@@ -50,6 +50,19 @@ export class FileManager {
     );
   }
 
+  /** Whether formatted content differs from the loaded file on disk. */
+  hasChanges(path: string, content: string): boolean {
+    return this.normalizeContent(path, content) !==
+      this.imports.get(resolve(path))!.sourceFile.text;
+  }
+
+  private normalizeContent(path: string, content: string): string {
+    const original = this.imports.get(resolve(path))?.sourceFile.text;
+    if (original === undefined) throw new Error(`File not loaded: ${path}`);
+    const newline = original.match(/\r\n|\n|\r/)?.[0] ?? "\n";
+    return content.replace(/\r\n|\n|\r/g, newline);
+  }
+
   /**
    * Write a loaded source file's updated content.
    *
@@ -63,12 +76,12 @@ export class FileManager {
    * @throws If the source path was not previously loaded.
    */
   write(path: string, content: string, newPath?: string): void {
-    const original = this.imports.get(resolve(path))?.sourceFile.text;
-    if (original === undefined) throw new Error(`File not loaded: ${path}`);
     const target = newPath ?? path;
-    const newline = original.match(/\r\n|\n|\r/)?.[0] ?? "\n";
-    const normalized = content.replace(/\r\n|\n|\r/g, newline);
-    if (target === path && normalized === original) return;
+    const normalized = this.normalizeContent(path, content);
+    if (
+      target === path &&
+      normalized === this.imports.get(resolve(path))!.sourceFile.text
+    ) return;
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, normalized);
   }

@@ -14,6 +14,7 @@ Deno.test("CLI args accept aliases, grouped switches and equals syntax", () => {
     inputs: ["src"],
     recursive: true,
     watch: true,
+    check: false,
     output: "out",
     config: "primp.config.ts",
   });
@@ -22,6 +23,7 @@ Deno.test("CLI args accept aliases, grouped switches and equals syntax", () => {
     "a.ts",
     "b.ts",
   ]);
+  expect(parseCliArgs(["--check", "src"])?.check).toBe(true);
 });
 
 Deno.test("CLI args reject unknown options and missing arguments", () => {
@@ -40,4 +42,8 @@ Deno.test("CLI args reject unknown options and missing arguments", () => {
       /requires an argument|Not enough arguments|Missing required argument/,
     );
   expect(() => parseCliArgs([])).toThrow(/at least one/);
+  expect(() => parseCliArgs(["--check", "--watch", "src"]))
+    .toThrow(/conflicts/i);
+  expect(() => parseCliArgs(["--check", "--output", "out", "src"]))
+    .toThrow(/conflicts/i);
 });

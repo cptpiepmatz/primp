@@ -35,6 +35,9 @@ export interface CliOptions {
 
   /** Watch selected source files for changes after the first pass. */
   watch: boolean;
+
+  /** Report files needing formatting without writing them. */
+  check: boolean;
 }
 
 /**
@@ -74,6 +77,11 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
       default: false,
       describe: "Watch files",
     })
+    .option("check", {
+      type: "boolean",
+      default: false,
+      describe: "Check formatting without writing files",
+    })
     .requiresArg(["output", "config"])
     .help("help")
     .alias("help", "h")
@@ -88,12 +96,16 @@ export function parseCliArgs(args: string[]): CliOptions | undefined {
   if (argv._.length === 0) {
     throw new Error("Expected at least one file or directory");
   }
+  if (argv.check && (argv.watch || argv.output !== undefined)) {
+    throw new Error("--check conflicts with --watch and --output");
+  }
   return {
     inputs: argv._.map(String),
     recursive: argv.recursive,
     output: argv.output,
     config: argv.config,
     watch: argv.watch,
+    check: argv.check,
   };
 }
 
@@ -121,14 +133,15 @@ function commonDirectory(paths: string[]): string {
  * Process files using the discovered or explicitly provided config.
  *
  * Sort, optionally group, and format each file once, then watch the selected
- * files if requested. Errors propagate to the caller; only invoking this
- * module directly sets a process exit code on failure.
+ * files if requested. In check mode, report files needing formatting and
+ * return whether any differ. Errors propagate to the caller; only invoking
+ * this module directly sets a process exit code.
  *
  * @param args Command-line arguments, excluding the executable name.
  */
-export async function main(args: string[]): Promise<void> {
+export async function main(args: string[]): Promise<boolean> {
   const options = parseCliArgs(args);
-  if (!options) return;
+  if (!options) return false;
   const { inputs, output } = options;
   const configPath = options.config ?? ConfigHandler.findConfig(".");
   const config = await ConfigHandler.load(configPath);
@@ -154,10 +167,18 @@ export async function main(args: string[]): Promise<void> {
     ? resolve(inputs[0])
     : commonDirectory(paths);
   const manager = new FileManager(paths);
+  let changed = false;
   const processFile = (path: string): void => {
     manager.reloadFromDisk(path);
     const source = manager.imports.get(resolve(path))!.sourceFile.text;
     const content = formatImports(source, config, path);
+    if (options.check) {
+      if (manager.hasChanges(path, content)) {
+        console.log(path);
+        changed = true;
+      }
+      return;
+    }
     const target = output !== undefined && outputBase !== undefined
       ? join(output, relative(outputBase, resolve(path)))
       : undefined;
@@ -175,6 +196,7 @@ export async function main(args: string[]): Promise<void> {
       });
     }
   }
+  return changed;
 }
 
 // Importing the CLI does not execute it.
@@ -184,7 +206,13 @@ const invoked = typeof Deno !== "undefined"
     import.meta.url ===
       pathToFileURL(realpathSync(resolve(process.argv[1]))).href;
 if (invoked) {
-  main(typeof Deno !== "undefined" ? Deno.args : process.argv.slice(2)).catch(
+  main(typeof Deno !== "undefined" ? Deno.args : process.argv.slice(2)).then(
+    (changed) => {
+      if (changed) {
+        if (typeof Deno !== "undefined") Deno.exitCode = 1;
+        else process.exitCode = 1;
+      }
+    },
     (error: unknown) => {
       console.error(error);
       if (typeof Deno !== "undefined") Deno.exitCode = 1;
