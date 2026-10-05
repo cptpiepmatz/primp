@@ -377,10 +377,11 @@ export class ImportIntegrator {
   /**
    * Integrate formatted imports into the source file's text.
    *
-   * A `null` inserts one blank separator line. Original blank lines survive
-   * between imports that remain adjacent and in order. Files with syntax errors
-   * or comments within the import block are returned unchanged rather than
-   * risking lost or detached comments. This does not write to disk.
+   * A `null` inserts one blank separator line. Blank lines within the original
+   * import block are replaced according to the configured separator rules.
+   * Files with syntax errors or comments within the import block are returned
+   * unchanged rather than risking lost or detached comments. This does not
+   * write to disk.
    *
    * @param sourceFile Source file whose leading imports will be replaced.
    * @param imports Sorted imports, with `null` marking blank lines.
@@ -413,33 +414,13 @@ export class ImportIntegrator {
         kind === ts.SyntaxKind.MultiLineCommentTrivia
       ) return sourceFile.text;
     }
-    const original = sourceFile.statements.filter(ts.isImportDeclaration);
-    const positions = new Map(
-      original.map((node, index) => [node.getStart(sourceFile), index]),
-    );
     const lines: string[] = [];
-    let previous: Import | undefined;
     for (const imported of imports) {
       if (!imported) {
         lines.push("");
         continue;
       }
-      if (previous && lines.at(-1) !== "") {
-        const index = positions.get(previous.start);
-        if (
-          index !== undefined &&
-          original[index + 1]?.getStart(sourceFile) === imported.start
-        ) {
-          const gap = sourceFile.text.slice(previous.end, imported.start);
-          const blankLines = Math.max(
-            0,
-            (gap.match(/\r\n|\n|\r/g)?.length ?? 0) - 1,
-          );
-          for (let i = 0; i < blankLines; i++) lines.push("");
-        }
-      }
       lines.push(imported.toString(this.formatting));
-      previous = imported;
     }
     return sourceFile.text.slice(0, start) + lines.join("\n") +
       sourceFile.text.slice(last.end);

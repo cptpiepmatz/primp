@@ -133,3 +133,43 @@ Deno.test("nodePrefix separates node: imports from other packages", () => {
 
   expect(input).viaRules({ separateBy }).toBe(expected);
 });
+
+Deno.test("no separators should move all imports together", () => {
+  const input = ts`
+    import a from "alpha";
+    import b from "beta";
+
+    import c from "charlie";
+
+    import d from "delta";
+  `;
+
+  const expected = ts`
+    import a from "alpha";
+    import b from "beta";
+    import c from "charlie";
+    import d from "delta";
+  `;
+
+  expect(input).viaRules({ separateBy: [] }).toBe(expected);
+});
+
+Deno.test("separator rules replace existing blank lines", () => {
+  const input = ts`
+    import pkg from "pkg";
+
+    import other from "other";
+    import local from "./local";
+  `;
+
+  const expected = ts`
+    import pkg from "pkg";
+    import other from "other";
+
+    import local from "./local";
+  `;
+
+  expect(input).viaRules({ separateBy: [separators.packageSource] }).toBe(
+    expected,
+  );
+});
