@@ -61,6 +61,30 @@ export const unequalSideEffectUse: SeparateByFunction = function (l, f) {
 };
 
 /**
+ * Place a separator between type-only imports and imports with values.
+ *
+ * @example
+ * ```ts
+ * // unseparated
+ * import type { A } from "alpha";
+ * import type { B } from "bravo";
+ * import c from "charlie";
+ *
+ * // separated
+ * import type { A } from "alpha";
+ * import type { B } from "bravo";
+ *
+ * import c from "charlie";
+ * ```
+ * @see Import#isTypeOnly
+ * @param l Leading Import
+ * @param f Following Import
+ */
+export const unequalTypeOnlyUse: SeparateByFunction = function (l, f) {
+  return l.isTypeOnly !== f.isTypeOnly;
+};
+
+/**
  * Place a separator between two imports if one of them is imported from a
  * package and the other one from a relative path.
  *

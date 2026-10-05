@@ -114,6 +114,42 @@ Deno.test("unequalSideEffectUse separates side effects and bindings", () => {
   );
 });
 
+Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
+  const separator = separateBy.unequalTypeOnlyUse;
+  expectSeparation(
+    ts`
+    import type { A } from "a";
+    import b from "b";
+  `,
+    separator,
+    true,
+  );
+  expectSeparation(
+    ts`
+    import a from "a";
+    import type { B } from "b";
+  `,
+    separator,
+    true,
+  );
+  expectSeparation(
+    ts`
+    import type { A } from "a";
+    import type { B } from "b";
+  `,
+    separator,
+    false,
+  );
+  expectSeparation(
+    ts`
+    import a from "a";
+    import b from "b";
+  `,
+    separator,
+    false,
+  );
+});
+
 Deno.test("custom source grouping puts a blank line between packages and local imports", () => {
   const input = ts`
     import a from "./a";
