@@ -2,6 +2,7 @@ import { statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { defaultFormattingOptions } from "./core.ts";
 import type { FormattingOptions } from "./core.ts";
 import { tsExtractor } from "./extractors.ts";
 import type { Extractor } from "./extractors.ts";
@@ -69,14 +70,7 @@ export const defaultConfig: FullConfig = {
     unequalPackageState,
     unequalNamespaceUse,
   ],
-  formatting: {
-    indent: 2,
-    bracketIndent: 1,
-    quoteStyle: "double",
-    maxColumns: 80,
-    trailingComma: true,
-    breakFrom: false,
-  },
+  formatting: { ...defaultFormattingOptions },
 };
 
 /** Resolve defaults and discover TypeScript config files. */

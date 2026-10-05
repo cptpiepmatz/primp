@@ -93,7 +93,7 @@ export interface ImportSource {
   isRelative: boolean;
 }
 
-const defaults: Required<FormattingOptions> = {
+export const defaultFormattingOptions: Required<FormattingOptions> = {
   indent: 2,
   bracketIndent: 1,
   quoteStyle: "double",
@@ -222,7 +222,7 @@ export class Import {
       trailingComma,
       breakFrom,
     } = {
-      ...defaults,
+      ...defaultFormattingOptions,
       ...options,
     };
     const quote = quoteStyle === "single" ? "'" : '"';
