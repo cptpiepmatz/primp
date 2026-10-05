@@ -1,5 +1,5 @@
-import { existsSync, statSync } from "node:fs";
-import { basename, dirname, extname, join, resolve } from "node:path";
+import { statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { FormattingOptions } from "./core.ts";
@@ -89,12 +89,7 @@ export class ConfigHandler implements FullConfig {
 
   /** Fill in omitted fields from the defaults. */
   constructor(config: Config = {}) {
-    this.extractors = [
-      ...(config.extractors ?? []),
-      ...defaultConfig.extractors.filter((extractor) =>
-        !config.extractors?.includes(extractor)
-      ),
-    ];
+    this.extractors = config.extractors ?? [...defaultConfig.extractors];
     this.sortImports = config.sortImports ?? [...defaultConfig.sortImports];
     this.sortImportElements = config.sortImportElements ??
       [...defaultConfig.sortImportElements];
@@ -105,9 +100,6 @@ export class ConfigHandler implements FullConfig {
   /** Import a config module. The runtime must support TypeScript modules. */
   static async load(path?: string): Promise<ConfigHandler> {
     if (!path) return new ConfigHandler();
-    if (extname(path).toLowerCase() !== ".ts") {
-      throw new Error(`Unsupported config format: ${path}`);
-    }
     const url = pathToFileURL(resolve(path)).href;
     const module: { default?: unknown } = await import(url);
     const value = module.default;
@@ -117,33 +109,22 @@ export class ConfigHandler implements FullConfig {
     return new ConfigHandler(value as Config);
   }
 
-  /** Check whether a path is a recognized config file name. */
-  static isSupportedConfigFile(path: string): boolean {
-    return extname(path).toLowerCase() === ".ts" &&
-      ["primp.config", "pretty-ts-imports.config", "prettytsimports.config"]
-        .includes(basename(path, extname(path)).toLowerCase());
-  }
-
   /** Search from a file or directory upward for a config file. */
   static findConfig(entryPoint: string): string | undefined {
+    const expectedFileNames = [
+      "primp.config.ts",
+      "primp.config.mts",
+      "primp.config.js",
+      "primp.config.mjs",
+    ];
+
     let current = resolve(entryPoint);
-    if (existsSync(current) && statSync(current).isFile()) {
-      if (ConfigHandler.isSupportedConfigFile(current)) return current;
-      current = dirname(current);
-    }
     while (true) {
-      if (existsSync(current)) {
-        for (
-          const name of [
-            "primp.config.ts",
-            "pretty-ts-imports.config.ts",
-            "prettytsimports.config.ts",
-          ]
-        ) {
-          const file = join(current, name);
-          if (existsSync(file) && statSync(file).isFile()) return file;
-        }
+      for (const fileName of expectedFileNames) {
+        const candidate = join(current, fileName);
+        if (statSync(candidate, {throwIfNoEntry: false})?.isFile()) return candidate;
       }
+
       const parent = dirname(current);
       if (parent === current) return undefined;
       current = parent;
