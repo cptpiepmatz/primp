@@ -8,17 +8,13 @@ import { tsExtractor } from "./extractors.ts";
 import type { Extractor } from "./extractors.ts";
 import { specifierName } from "../rules/elements.ts";
 import {
-  namespacePresence,
-  pathName,
+  directoryName,
+  namespaceImport,
+  packageFirst,
   sideEffect,
   sourceName,
-  sourceType,
 } from "../rules/imports.ts";
-import {
-  unequalNamespaceUse,
-  unequalPackageState,
-  unequalSideEffectUse,
-} from "../rules/separators.ts";
+import * as separators from "../rules/separators.ts";
 import { inverse } from "./rules.ts";
 import type {
   ImportCompareFunction,
@@ -59,16 +55,16 @@ export const defaultConfig: FullConfig = {
   extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
-    sourceType,
-    inverse(namespacePresence),
-    pathName,
+    packageFirst,
+    inverse(namespaceImport),
+    directoryName,
     sourceName,
   ],
   sortImportElements: [specifierName],
   separateBy: [
-    unequalSideEffectUse,
-    unequalPackageState,
-    unequalNamespaceUse,
+    separators.sideEffect,
+    separators.packageSource,
+    separators.namespace,
   ],
   formatting: { ...defaultFormattingOptions },
 };
@@ -116,7 +112,9 @@ export class ConfigHandler implements FullConfig {
     while (true) {
       for (const fileName of expectedFileNames) {
         const candidate = join(current, fileName);
-        if (statSync(candidate, {throwIfNoEntry: false})?.isFile()) return candidate;
+        if (statSync(candidate, { throwIfNoEntry: false })?.isFile()) {
+          return candidate;
+        }
       }
 
       const parent = dirname(current);

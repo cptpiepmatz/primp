@@ -5,8 +5,8 @@ import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";
 
-Deno.test("unequalNamespaceUse separates namespace and ordinary imports", () => {
-  const separateBy = [separators.unequalNamespaceUse];
+Deno.test("namespace separates namespace and ordinary imports", () => {
+  const separateBy = [separators.namespace];
 
   const input = ts`
     import * as first from "a";
@@ -29,8 +29,8 @@ Deno.test("unequalNamespaceUse separates namespace and ordinary imports", () => 
   expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
-Deno.test("unequalPackageState separates packages and relative imports", () => {
-  const separateBy = [separators.unequalPackageState];
+Deno.test("packageSource separates packages and relative imports", () => {
+  const separateBy = [separators.packageSource];
 
   const input = ts`
     import pkg from "pkg";
@@ -53,8 +53,8 @@ Deno.test("unequalPackageState separates packages and relative imports", () => {
   expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
-Deno.test("unequalSideEffectUse separates side effects and bindings", () => {
-  const separateBy = [separators.unequalSideEffectUse];
+Deno.test("sideEffect separates side effects and bindings", () => {
+  const separateBy = [separators.sideEffect];
 
   const input = ts`
     import "a";
@@ -77,8 +77,8 @@ Deno.test("unequalSideEffectUse separates side effects and bindings", () => {
   expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
-Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
-  const separateBy = [separators.unequalTypeOnlyUse];
+Deno.test("typeOnly separates type-only and value imports", () => {
+  const separateBy = [separators.typeOnly];
 
   const input = ts`
     import type { A } from "a";
@@ -103,16 +103,16 @@ Deno.test("unequalTypeOnlyUse separates type-only and value imports", () => {
   expect(input).viaRules({ separateBy }).toBe(expected);
 });
 
-Deno.test("unequalNodePrefix separates node: imports from other packages", () => {
+Deno.test("nodePrefix separates node: imports from other packages", () => {
   const config = new ConfigHandler();
   stdExpect(config.separateBy).toEqual([
-    separators.unequalSideEffectUse,
-    separators.unequalPackageState,
-    separators.unequalNamespaceUse,
+    separators.sideEffect,
+    separators.packageSource,
+    separators.namespace,
   ]);
-  stdExpect(config.separateBy).not.toContain(separators.unequalNodePrefix);
+  stdExpect(config.separateBy).not.toContain(separators.nodePrefix);
 
-  const separateBy = [separators.unequalNodePrefix];
+  const separateBy = [separators.nodePrefix];
 
   const input = ts`
     import fs from "node:fs";

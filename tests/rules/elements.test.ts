@@ -5,8 +5,8 @@ import * as compareImportElements from "@primp/primp/rules/elements";
 
 import { expect, ts } from "./mod.ts";
 
-Deno.test("basenameGroup groups uppercase names by their ending words", () => {
-  const sortImportElements = [compareImportElements.basenameGroup];
+Deno.test("nameSuffix groups uppercase names by their ending words", () => {
+  const sortImportElements = [compareImportElements.nameSuffix];
 
   const input = ts`
     import {
@@ -45,8 +45,8 @@ Deno.test("elementName sorts local bindings alphabetically", () => {
   expect(input).viaRules({ sortImportElements }).toBe(expected);
 });
 
-Deno.test("elementType groups lowercase names before uppercase names", () => {
-  const sortImportElements = [compareImportElements.elementType];
+Deno.test("lowercaseFirst groups lowercase names before uppercase names", () => {
+  const sortImportElements = [compareImportElements.lowercaseFirst];
 
   const input = ts`
     import { B, a, D, c } from "pkg";

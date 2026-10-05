@@ -24,7 +24,7 @@ import type { SeparateByFunction } from "../src/rules.ts";
  * import pkg from "package";
  * ```
  */
-export const unequalNodePrefix: SeparateByFunction = function (l, f) {
+export const nodePrefix: SeparateByFunction = function (l, f) {
   const leadingIsNode = l.source.name.startsWith("node:");
   const followingIsNode = f.source.name.startsWith("node:");
   return leadingIsNode !== followingIsNode;
@@ -56,7 +56,7 @@ export const unequalNodePrefix: SeparateByFunction = function (l, f) {
  * @param l Leading Import
  * @param f Following Import
  */
-export const unequalSideEffectUse: SeparateByFunction = function (l, f) {
+export const sideEffect: SeparateByFunction = function (l, f) {
   return l.isSideEffectOnly !== f.isSideEffectOnly;
 };
 
@@ -80,7 +80,7 @@ export const unequalSideEffectUse: SeparateByFunction = function (l, f) {
  * @param l Leading Import
  * @param f Following Import
  */
-export const unequalTypeOnlyUse: SeparateByFunction = function (l, f) {
+export const typeOnly: SeparateByFunction = function (l, f) {
   return (l.phaseModifier === "type") !== (f.phaseModifier === "type");
 };
 
@@ -112,7 +112,7 @@ export const unequalTypeOnlyUse: SeparateByFunction = function (l, f) {
  * @param leading Leading Import
  * @param following Following Import
  */
-export const unequalPackageState: SeparateByFunction = function (l, f) {
+export const packageSource: SeparateByFunction = function (l, f) {
   return l.source.isPackage !== f.source.isPackage;
 };
 
@@ -142,6 +142,6 @@ export const unequalPackageState: SeparateByFunction = function (l, f) {
  * @param l Leading Import
  * @param f Following Import
  */
-export const unequalNamespaceUse: SeparateByFunction = function (l, f) {
+export const namespace: SeparateByFunction = function (l, f) {
   return l.isNamespace !== f.isNamespace;
 };

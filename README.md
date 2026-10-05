@@ -131,32 +131,28 @@ local packages, including in `examples/`. Omitted fields use these defaults:
 import { inverse, tsExtractor } from "jsr:@primp/primp";
 import { specifierName } from "jsr:@primp/primp/rules/elements";
 import {
-  namespacePresence,
-  pathName,
+  directoryName,
+  namespaceImport,
+  packageFirst,
   sideEffect,
   sourceName,
-  sourceType,
 } from "jsr:@primp/primp/rules/imports";
-import {
-  unequalNamespaceUse,
-  unequalPackageState,
-  unequalSideEffectUse,
-} from "jsr:@primp/primp/rules/separators";
+import * as separators from "jsr:@primp/primp/rules/separators";
 
 export default {
   extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
-    sourceType,
-    inverse(namespacePresence),
-    pathName,
+    packageFirst,
+    inverse(namespaceImport),
+    directoryName,
     sourceName,
   ],
   sortImportElements: [specifierName],
   separateBy: [
-    unequalSideEffectUse,
-    unequalPackageState,
-    unequalNamespaceUse,
+    separators.sideEffect,
+    separators.packageSource,
+    separators.namespace,
   ],
   formatting: {
     indent: 2,
@@ -178,15 +174,15 @@ formatting:
 ```ts
 import { defineConfig } from "jsr:@primp/primp";
 import {
-  basenameGroup,
   elementName,
-  elementType,
+  lowercaseFirst,
+  nameSuffix,
 } from "jsr:@primp/primp/rules/elements";
 
 export default defineConfig({
   sortImportElements: [
-    elementType,
-    basenameGroup,
+    lowercaseFirst,
+    nameSuffix,
     elementName,
   ],
   formatting: {
@@ -199,45 +195,41 @@ export default defineConfig({
 
 Sorting rules run left to right until the first nonzero comparison. Wrap any
 comparator with `inverse(rule)` to reverse it, including custom comparators and
-named-element rules. Import comparators include `sideEffect`, `sourceType`,
-`namespacePresence`, `defaultPresence`, `defaultType`, `sourceName`,
-`pathDepth`, `pathName`, and `nodePrefix` (`node:` imports first). Named-element
-rules include `elementType`, `elementName`, `basenameGroup`, and
-`specifierName`. The `separateBy` option inserts a blank line when any listed
-predicate is true; `unequalNodePrefix` separates `node:` imports from other
-imports. To opt in while retaining the other default rules, configure:
+named-element rules. Import comparators include `sideEffect`, `packageFirst`,
+`namespaceImport`, `defaultImport`, `uppercaseDefault`, `sourceName`,
+`pathDepth`, `directoryName`, `typeOnly`, and `nodePrefix` (`node:` imports
+first). Named-element rules include `lowercaseFirst`, `elementName`,
+`nameSuffix`, and `specifierName`. The `separateBy` option inserts a blank line
+when any listed predicate is true; `separators.nodePrefix` separates `node:`
+imports from other imports. To opt in while retaining the other default rules,
+configure:
 
 ```ts
 import { defineConfig, inverse } from "jsr:@primp/primp";
 import {
-  namespacePresence,
+  directoryName,
+  namespaceImport,
   nodePrefix,
-  pathName,
+  packageFirst,
   sideEffect,
   sourceName,
-  sourceType,
 } from "jsr:@primp/primp/rules/imports";
-import {
-  unequalNamespaceUse,
-  unequalNodePrefix,
-  unequalPackageState,
-  unequalSideEffectUse,
-} from "jsr:@primp/primp/rules/separators";
+import * as separators from "jsr:@primp/primp/rules/separators";
 
 export default defineConfig({
   sortImports: [
     nodePrefix,
     inverse(sideEffect),
-    sourceType,
-    inverse(namespacePresence),
-    pathName,
+    packageFirst,
+    inverse(namespaceImport),
+    directoryName,
     sourceName,
   ],
   separateBy: [
-    unequalNodePrefix,
-    unequalSideEffectUse,
-    unequalPackageState,
-    unequalNamespaceUse,
+    separators.nodePrefix,
+    separators.sideEffect,
+    separators.packageSource,
+    separators.namespace,
   ],
 });
 ```

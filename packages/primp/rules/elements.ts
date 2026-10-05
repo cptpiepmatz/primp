@@ -13,7 +13,7 @@ import type { ImportElementCompareFunction } from "../src/rules.ts";
  * If all sub words are the same but one is longer this will be recognized as
  * equal.
  *
- * <i>This ignores every element that is not a type.</i>
+ * <i>This ignores names that do not start with an uppercase letter.</i>
  *
  * @example
  * ```ts
@@ -24,10 +24,10 @@ import type { ImportElementCompareFunction } from "../src/rules.ts";
  * import {StartBase, OtherBase, Stuff, PowStuff} from "stuff";
  * ```
  *
- * @see ImportElement#isFunctionOrObject
+ * @see ImportElement#startsWithUppercase
  */
-export const basenameGroup: ImportElementCompareFunction = function (a, b) {
-  if (a.isFunctionOrObject || b.isFunctionOrObject) return 0;
+export const nameSuffix: ImportElementCompareFunction = function (a, b) {
+  if (!a.startsWithUppercase || !b.startsWithUppercase) return 0;
 
   const matcher = /([A-Z][a-z]*)/g;
   const aMatches = a.name.match(matcher);
@@ -61,8 +61,8 @@ export const elementName: ImportElementCompareFunction = function (a, b) {
 };
 
 /**
- * Compares two import elements whether they are a function, object or Type.
- * If both elements are the same the will recognized as equal.
+ * Puts lowercase-named elements before uppercase-named elements.
+ * This uses a naming heuristic, not TypeScript's type namespace.
  *
  * @example
  * ```ts
@@ -73,12 +73,10 @@ export const elementName: ImportElementCompareFunction = function (a, b) {
  * import {a, d, B, C} from "alphabet";
  * ```
  *
- * @see ImportElement#isFunctionOrObject
- * @see ImportElement#isType
+ * @see ImportElement#startsWithUppercase
  */
-export const elementType: ImportElementCompareFunction = function (a, b) {
-  const [aFunction, bFunction] = [a, b].map((m) => +m.isFunctionOrObject);
-  return bFunction - aFunction;
+export const lowercaseFirst: ImportElementCompareFunction = function (a, b) {
+  return +a.startsWithUppercase - +b.startsWithUppercase;
 };
 
 /**

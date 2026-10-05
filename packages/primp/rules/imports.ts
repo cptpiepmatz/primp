@@ -25,15 +25,15 @@ import type { ImportCompareFunction } from "../src/rules.ts";
  *
  * @see ImportElement#isDefault
  */
-export const defaultPresence: ImportCompareFunction = function (a, b) {
+export const defaultImport: ImportCompareFunction = function (a, b) {
   const aDefault = a.defaultElement ? 0 : 1;
   const bDefault = b.defaultElement ? 0 : 1;
   return aDefault - bDefault;
 };
 
 /**
- * Compares two default imports whether one of them is a type.
- * Element recognized as type imports are considered lesser (higher position).
+ * Compares default bindings by capitalization, putting uppercase names first.
+ * This is a naming heuristic, not a check for TypeScript type-only imports.
  *
  * <i>This ignores imports without default imports.</i>
  *
@@ -50,15 +50,13 @@ export const defaultPresence: ImportCompareFunction = function (a, b) {
  * import alpha from "Alpha";
  * ```
  *
- * @see ImportElement#isType
+ * @see ImportElement#startsWithUppercase
  */
-export const defaultType: ImportCompareFunction = function (a, b) {
+export const uppercaseDefault: ImportCompareFunction = function (a, b) {
   const aDefault = a.defaultElement;
   const bDefault = b.defaultElement;
   if (!aDefault || !bDefault) return 0;
-  const aType = aDefault.isType ? 0 : 1;
-  const bType = bDefault.isType ? 0 : 1;
-  return aType - bType;
+  return +bDefault.startsWithUppercase - +aDefault.startsWithUppercase;
 };
 
 /**
@@ -78,7 +76,7 @@ export const defaultType: ImportCompareFunction = function (a, b) {
  *
  * @see Import#isNamespace
  */
-export const namespacePresence: ImportCompareFunction = function (a, b) {
+export const namespaceImport: ImportCompareFunction = function (a, b) {
   const aNamespace = a.isNamespace ? 0 : 1;
   const bNamespace = b.isNamespace ? 0 : 1;
   return aNamespace - bNamespace;
@@ -149,7 +147,7 @@ export const pathDepth: ImportCompareFunction = function (a, b) {
  * import c from "./alpha-beta/alpha/c";
  * ```
  */
-export const pathName: ImportCompareFunction = function (a, b) {
+export const directoryName: ImportCompareFunction = function (a, b) {
   if ([a, b].some((m) => m.source.isPackage)) return 0;
   const [dirsA, dirsB] = [a, b].map((m) => dirname(m.source.name).split("/"));
   const minLength = Math.min(dirsA.length, dirsB.length);
@@ -203,7 +201,7 @@ export const sideEffect: ImportCompareFunction = function (a, b) {
  * @see ImportSource#isPackage
  * @see ImportSource#isRelative
  */
-export const sourceType: ImportCompareFunction = function (a, b) {
+export const packageFirst: ImportCompareFunction = function (a, b) {
   const aPackage = a.source.isPackage ? 0 : 1;
   const bPackage = b.source.isPackage ? 0 : 1;
   return aPackage - bPackage;

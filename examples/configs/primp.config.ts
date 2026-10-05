@@ -1,42 +1,38 @@
 import { defineConfig, inverse } from "@primp/primp";
 import {
-  basenameGroup,
   elementName,
-  elementType,
+  lowercaseFirst,
+  nameSuffix,
 } from "@primp/primp/rules/elements";
 import {
-  namespacePresence,
-  pathName,
+  directoryName,
+  namespaceImport,
+  packageFirst,
   sideEffect,
   sourceName,
-  sourceType,
 } from "@primp/primp/rules/imports";
-import {
-  unequalNamespaceUse,
-  unequalPackageState,
-  unequalSideEffectUse,
-} from "@primp/primp/rules/separators";
+import * as separators from "@primp/primp/rules/separators";
 import dotJSFirst from "../compare_functions/imports/dotJSFirst.ts";
 
 // Opt in to the original import order, grouping, and formatting.
 export default defineConfig({
   sortImports: [
     inverse(sideEffect),
-    sourceType,
+    packageFirst,
     dotJSFirst,
-    inverse(namespacePresence),
-    pathName,
+    inverse(namespaceImport),
+    directoryName,
     sourceName,
   ],
   sortImportElements: [
-    elementType,
-    basenameGroup,
+    lowercaseFirst,
+    nameSuffix,
     elementName,
   ],
   separateBy: [
-    unequalSideEffectUse,
-    unequalPackageState,
-    unequalNamespaceUse,
+    separators.sideEffect,
+    separators.packageSource,
+    separators.namespace,
   ],
   formatting: {
     indent: 2,

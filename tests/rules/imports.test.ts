@@ -7,8 +7,8 @@ import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";
 
-Deno.test("defaultPresence puts imports with default bindings first", () => {
-  const sortImports = [compareImports.defaultPresence];
+Deno.test("defaultImport puts imports with default bindings first", () => {
+  const sortImports = [compareImports.defaultImport];
 
   const input = ts`
     import {stuff} from "things";
@@ -27,8 +27,8 @@ Deno.test("defaultPresence puts imports with default bindings first", () => {
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
-Deno.test("defaultType orders uppercase defaults before lowercase defaults", () => {
-  const sortImports = [compareImports.defaultType];
+Deno.test("uppercaseDefault orders uppercase defaults before lowercase defaults", () => {
+  const sortImports = [compareImports.uppercaseDefault];
 
   const input = ts`
     import { gamma } from "Gamma";
@@ -49,8 +49,8 @@ Deno.test("defaultType orders uppercase defaults before lowercase defaults", () 
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
-Deno.test("namespacePresence puts namespace imports first", () => {
-  const sortImports = [compareImports.namespacePresence];
+Deno.test("namespaceImport puts namespace imports first", () => {
+  const sortImports = [compareImports.namespaceImport];
 
   const input = ts`
     import gamma from "Gamma";
@@ -89,8 +89,8 @@ Deno.test("pathDepth orders shallower relative paths first", () => {
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
-Deno.test("pathName orders relative parent directories", () => {
-  const sortImports = [compareImports.pathName];
+Deno.test("directoryName orders relative parent directories", () => {
+  const sortImports = [compareImports.directoryName];
 
   const input = ts`
     import e from "e";
@@ -153,8 +153,8 @@ Deno.test("sourceName sorts packages and leaves relative imports in place", () =
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
-Deno.test("sourceType puts packages before relative imports", () => {
-  const sortImports = [compareImports.sourceType];
+Deno.test("packageFirst puts packages before relative imports", () => {
+  const sortImports = [compareImports.packageFirst];
 
   const input = ts`
     import d from "./Delta";
@@ -186,8 +186,8 @@ Deno.test("custom source grouping puts a blank line between packages and local i
   `;
 
   expect(input).viaRules({
-    sortImports: [compareImports.sourceType],
-    separateBy: [separators.unequalPackageState],
+    sortImports: [compareImports.packageFirst],
+    separateBy: [separators.packageSource],
   }).toBe(expected);
 });
 
@@ -221,7 +221,7 @@ Deno.test("default declaration rules sort and group imports", () => {
   const config = new ConfigHandler();
   stdExpect(config.extractors).toHaveLength(1);
   stdExpect(config.sortImports).toEqual(defaultConfig.sortImports);
-  stdExpect(config.sortImports[1]).toBe(compareImports.sourceType);
+  stdExpect(config.sortImports[1]).toBe(compareImports.packageFirst);
 
   const input = ts`
     import local from "./z";
@@ -282,7 +282,7 @@ Deno.test("inverse reverses the source name sorter", () => {
 });
 
 Deno.test("inverse puts relative imports first without reordering packages", () => {
-  const sortImports = [inverse(compareImports.sourceType)];
+  const sortImports = [inverse(compareImports.packageFirst)];
 
   const input = ts`
     import first from "a";
@@ -320,13 +320,13 @@ Deno.test("inverse reverses a custom import sorter", () => {
 Deno.test("node: import rules are opt-in", () => {
   const config = new ConfigHandler();
   stdExpect(config.sortImports).not.toContain(compareImports.nodePrefix);
-  stdExpect(config.separateBy).not.toContain(separators.unequalNodePrefix);
+  stdExpect(config.separateBy).not.toContain(separators.nodePrefix);
 });
 
 Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
   const config = new ConfigHandler();
   const sortImports = [compareImports.nodePrefix, ...config.sortImports];
-  const separateBy = [separators.unequalNodePrefix, ...config.separateBy];
+  const separateBy = [separators.nodePrefix, ...config.separateBy];
 
   const input = ts`
     import local from "./local";
