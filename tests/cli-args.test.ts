@@ -1,6 +1,5 @@
-import { expect } from "@std/expect";
-
 import { parseCliArgs } from "@primp/primp/cli";
+import { expect } from "@std/expect";
 
 Deno.test("CLI args accept aliases, grouped switches and equals syntax", () => {
   expect(

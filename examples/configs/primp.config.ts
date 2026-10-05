@@ -11,7 +11,9 @@ import {
   sideEffect,
   sourceName,
 } from "@primp/primp/rules/imports";
+
 import * as separators from "@primp/primp/rules/separators";
+
 import dotJSFirst from "../compare_functions/imports/dotJSFirst.ts";
 
 // Opt in to the original import order, grouping, and formatting.

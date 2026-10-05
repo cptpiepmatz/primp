@@ -1,6 +1,10 @@
-/** Shared rule types, comparator helpers, and sorting/grouping orchestration.
+/**
+ * Shared rule types, comparator helpers, and sorting/grouping orchestration.
  * Built-in rule implementations live in `rules/`.
+ *
+ * @module
  */
+
 import type { Import, ImportElement } from "./core.ts";
 
 /**

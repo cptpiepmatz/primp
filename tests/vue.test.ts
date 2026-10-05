@@ -1,6 +1,3 @@
-import { expect } from "@std/expect";
-import { fromFileUrl, join } from "@std/path";
-
 import {
   defaultConfig,
   extractSource,
@@ -12,6 +9,8 @@ import {
 import { main } from "@primp/primp/cli";
 import { sourceName } from "@primp/primp/rules/imports";
 import { extractVueScripts, vueExtractor } from "@primp/vue";
+import { expect } from "@std/expect";
+import { fromFileUrl, join } from "@std/path";
 
 const vueConfig = { extractors: [vueExtractor] };
 

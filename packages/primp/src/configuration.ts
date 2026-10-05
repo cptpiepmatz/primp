@@ -3,9 +3,8 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { defaultFormattingOptions } from "./core.ts";
-import type { FormattingOptions } from "./core.ts";
 import { tsExtractor } from "./extractors.ts";
-import type { Extractor } from "./extractors.ts";
+import { inverse } from "./rules.ts";
 import { specifierName } from "../rules/elements.ts";
 import {
   directoryName,
@@ -13,9 +12,12 @@ import {
   packageFirst,
   sideEffect,
   sourceName,
+  typeOnly,
 } from "../rules/imports.ts";
 import * as separators from "../rules/separators.ts";
-import { inverse } from "./rules.ts";
+
+import type { FormattingOptions } from "./core.ts";
+import type { Extractor } from "./extractors.ts";
 import type {
   ImportCompareFunction,
   ImportElementCompareFunction,
@@ -56,6 +58,7 @@ export const defaultConfig: FullConfig = {
   sortImports: [
     inverse(sideEffect),
     packageFirst,
+    inverse(typeOnly),
     inverse(namespaceImport),
     directoryName,
     sourceName,
@@ -64,7 +67,7 @@ export const defaultConfig: FullConfig = {
   separateBy: [
     separators.sideEffect,
     separators.packageSource,
-    separators.namespace,
+    separators.typeOnly,
   ],
   formatting: { ...defaultFormattingOptions },
 };

@@ -10,8 +10,9 @@ import { dirname, join, resolve } from "node:path";
 import type { SourceFile } from "typescript";
 
 import { parseImports } from "./core.ts";
-import type { Import } from "./core.ts";
 import { matchesExtractor, tsExtractor } from "./extractors.ts";
+
+import type { Import } from "./core.ts";
 
 /** A manager for loading and writing TypeScript source files. */
 export class FileManager {

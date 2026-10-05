@@ -1,8 +1,9 @@
 import { ConfigHandler } from "./configuration.ts";
-import type { Config } from "./configuration.ts";
 import { ImportIntegrator, parseImports } from "./core.ts";
 import { matchesExtractor } from "./extractors.ts";
 import { ImportSeparator, ImportSorter } from "./rules.ts";
+
+import type { Config } from "./configuration.ts";
 
 /**
  * Format imports in the slices supplied by the filename's configured extractor.

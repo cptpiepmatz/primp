@@ -1,6 +1,5 @@
-import { expect as stdExpect } from "@std/expect";
-
 import { ConfigHandler } from "@primp/primp";
+import { expect as stdExpect } from "@std/expect";
 import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";

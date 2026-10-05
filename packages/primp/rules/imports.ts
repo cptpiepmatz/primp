@@ -12,6 +12,7 @@
  */
 
 import { dirname } from "node:path";
+
 import type { Import } from "../src/core.ts";
 import type { ImportCompareFunction } from "../src/rules.ts";
 

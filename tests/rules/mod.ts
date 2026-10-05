@@ -1,11 +1,10 @@
-import { expect as stdExpect } from "@std/expect";
-
 import {
   ImportIntegrator,
   ImportSeparator,
   ImportSorter,
   parseImports,
 } from "@primp/primp";
+import { expect as stdExpect } from "@std/expect";
 
 // Indented TypeScript fixtures with a single final newline.
 // The ts tag can also be recognized by VS Code tagged-template highlighters.

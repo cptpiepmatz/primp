@@ -1,6 +1,3 @@
-import { expect } from "@std/expect";
-import { fromFileUrl, join } from "@std/path";
-
 import {
   ConfigHandler,
   defineConfig,
@@ -12,6 +9,8 @@ import {
 } from "@primp/primp";
 import { main } from "@primp/primp/cli";
 import { packageFirst } from "@primp/primp/rules/imports";
+import { expect } from "@std/expect";
+import { fromFileUrl, join } from "@std/path";
 
 Deno.test("CLI uses one cwd config for multiple files and directories", async () => {
   const root = Deno.makeTempDirSync({ prefix: "primp-multi-" });
