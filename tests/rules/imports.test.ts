@@ -22,12 +22,14 @@ Deno.test("defaultPresence puts imports with default bindings first", () => {
     import d, {e, f} from "beta";
     import random from "weird";
   `;
+
   const expected = ts`
     import d, {e, f} from "beta";
     import random from "weird";
     import {stuff} from "things";
     import {a, b, c} from "alpha";
   `;
+
   expectImportOrder(input, expected, compareImports.defaultPresence);
 });
 
@@ -39,6 +41,7 @@ Deno.test("defaultType orders uppercase defaults before lowercase defaults", () 
     import Delta from "Delta";
     import epsilon from "Epsilon";
   `;
+
   const expected = ts`
     import {gamma} from "Gamma";
     import Beta from "Beta";
@@ -46,6 +49,7 @@ Deno.test("defaultType orders uppercase defaults before lowercase defaults", () 
     import alpha from "Alpha";
     import epsilon from "Epsilon";
   `;
+
   expectImportOrder(input, expected, compareImports.defaultType);
 });
 
@@ -56,12 +60,14 @@ Deno.test("namespacePresence puts namespace imports first", () => {
     import * as delta from "Delta";
     import * as beta from "Beta";
   `;
+
   const expected = ts`
     import * as delta from "Delta";
     import * as beta from "Beta";
     import gamma from "Gamma";
     import alpha from "Alpha";
   `;
+
   expectImportOrder(input, expected, compareImports.namespacePresence);
 });
 
@@ -72,12 +78,14 @@ Deno.test("pathDepth orders shallower relative paths first", () => {
     import a from "./longer/path";
     import b from "./short-path";
   `;
+
   const expected = ts`
     import c from "PackageC";
     import d from "PackageD";
     import b from "./short-path";
     import a from "./longer/path";
   `;
+
   expectImportOrder(input, expected, compareImports.pathDepth);
 });
 
@@ -90,6 +98,7 @@ Deno.test("pathName orders relative parent directories", () => {
     import a from "./alpha/beta/a";
     import d from "./alpha/beta/d";
   `;
+
   const expected = ts`
     import e from "e";
     import f from "f";
@@ -98,6 +107,7 @@ Deno.test("pathName orders relative parent directories", () => {
     import b from "./alpha/gamma/b";
     import c from "./alpha-beta/alpha/c";
   `;
+
   expectImportOrder(input, expected, compareImports.pathName);
 });
 
@@ -108,12 +118,14 @@ Deno.test("sideEffect puts side-effect-only imports first", () => {
     import c from "charlie";
     import "delta";
   `;
+
   const expected = ts`
     import "beta";
     import "delta";
     import a from "alpha";
     import c from "charlie";
   `;
+
   expectImportOrder(input, expected, compareImports.sideEffect);
 });
 
@@ -124,12 +136,14 @@ Deno.test("sourceName sorts packages and leaves relative imports in place", () =
     import a from "beta";
     import b from "alpha";
   `;
+
   const expected = ts`
     import c from "./c";
     import d from "./d";
     import b from "alpha";
     import a from "beta";
   `;
+
   expectImportOrder(input, expected, compareImports.sourceName);
 });
 
@@ -140,13 +154,36 @@ Deno.test("sourceType puts packages before relative imports", () => {
     import c from "Gamma";
     import a from "Alpha";
   `;
+
   const expected = ts`
     import c from "Gamma";
     import a from "Alpha";
     import d from "./Delta";
     import b from "./Beta";
   `;
+
   expectImportOrder(input, expected, compareImports.sourceType);
+});
+
+Deno.test("custom source grouping puts a blank line between packages and local imports", () => {
+  const input = ts`
+    import a from "./a";
+    import b from "b";
+  `;
+
+  const expected = ts`
+    import b from "b";
+
+    import a from "./a";
+  `;
+
+  expectReordered(
+    input,
+    expected,
+    [compareImports.sourceType],
+    [],
+    [separateBy.unequalPackageState],
+  );
 });
 
 Deno.test("typeOnly puts type-only declarations before other imports", () => {
@@ -158,6 +195,7 @@ Deno.test("typeOnly puts type-only declarations before other imports", () => {
     import "side-effect";
     import type * as Namespace from "namespace";
   `;
+
   const expected = ts`
     import type { Named } from "named";
     import type Default from "default";
@@ -166,6 +204,7 @@ Deno.test("typeOnly puts type-only declarations before other imports", () => {
     import value from "value";
     import "side-effect";
   `;
+
   expectImportOrder(input, expected, compareImports.typeOnly);
 });
 
@@ -181,6 +220,7 @@ Deno.test("default declaration rules sort and group imports", () => {
     import "polyfill";
     import * as ns from "alpha";
   `;
+
   const expected = ts`
     import { a, Alpha, Zoo } from "beta";
 
@@ -190,6 +230,7 @@ Deno.test("default declaration rules sort and group imports", () => {
 
     import "polyfill";
   `;
+
   expectReordered(
     input,
     expected,
@@ -207,6 +248,7 @@ Deno.test("default rules preserve a header and following code", () => {
 
     run();
   `;
+
   const expected = ts`
     // header
     import pkg from "pkg";
@@ -215,6 +257,7 @@ Deno.test("default rules preserve a header and following code", () => {
 
     run();
   `;
+
   const config = new ConfigHandler();
   const { sourceFile, imports } = parseImports(input);
   const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
@@ -232,10 +275,12 @@ Deno.test("inverse reverses built-in and custom import comparators", () => {
     import a from "a";
     import b from "b";
   `;
+
   const expected = ts`
     import b from "b";
     import a from "a";
   `;
+
   const { imports } = parseImports(input);
   expect(inverse(compareImports.sourceName)(imports[0], imports[1]))
     .toBeGreaterThan(0);
@@ -261,6 +306,7 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
     import path from "node:path";
     import fs from "node:fs";
   `;
+
   const expected = ts`
     import fs from "node:fs";
     import path from "node:path";
@@ -269,6 +315,7 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
 
     import local from "./local";
   `;
+
   const config = new ConfigHandler();
   expect(config.sortImports).not.toContain(compareImports.nodePrefix);
   expect(config.separateBy).not.toContain(separateBy.unequalNodePrefix);

@@ -1,4 +1,4 @@
-import { expect } from "@std/expect";
+import { expect as stdExpect } from "@std/expect";
 
 import {
   ImportIntegrator,
@@ -23,6 +23,18 @@ export function ts(strings: TemplateStringsArray): string {
     "\n";
 }
 
+export function expect(input: string) {
+  return {
+    viaSeparator(separator: (a: Import, b: Import) => boolean) {
+      const { sourceFile, imports } = parseImports(input);
+      const separated = new ImportSeparator([separator]).insertSeparator(
+        imports,
+      );
+      return stdExpect(new ImportIntegrator().integrate(sourceFile, separated));
+    },
+  };
+}
+
 export function expectReordered(
   input: string,
   expected: string,
@@ -33,7 +45,7 @@ export function expectReordered(
   const { sourceFile, imports } = parseImports(input);
   const sorted = new ImportSorter(sortImports, sortElements).sort(imports);
   const separated = new ImportSeparator(separators).insertSeparator(sorted);
-  expect(new ImportIntegrator().integrate(sourceFile, separated)).toBe(
+  stdExpect(new ImportIntegrator().integrate(sourceFile, separated)).toBe(
     expected,
   );
 }
@@ -46,14 +58,15 @@ export function expectImportOrder(
 ): void {
   const imports = parseImports(input).imports;
   const expectedImports = parseImports(expected).imports;
-  expect(imports).toHaveLength(expectedImports.length);
+  stdExpect(imports).toHaveLength(expectedImports.length);
   new ImportSorter([comparator], []).sort(imports);
-  expect(imports.map((imported) => input.slice(imported.start, imported.end)))
-    .toEqual(
-      expectedImports.map((imported) =>
-        expected.slice(imported.start, imported.end)
-      ),
-    );
+  stdExpect(
+    imports.map((imported) => input.slice(imported.start, imported.end)),
+  ).toEqual(
+    expectedImports.map((imported) =>
+      expected.slice(imported.start, imported.end)
+    ),
+  );
 }
 
 export function expectElementOrder(
@@ -62,14 +75,4 @@ export function expectElementOrder(
   comparator: (a: ImportElement, b: ImportElement) => number,
 ): void {
   expectReordered(input, expected, [], [comparator]);
-}
-
-export function expectSeparation(
-  input: string,
-  separator: (a: Import, b: Import) => boolean,
-  expected: boolean,
-): void {
-  const imports = parseImports(input).imports;
-  expect(imports).toHaveLength(2);
-  expect(separator(imports[0], imports[1])).toBe(expected);
 }
