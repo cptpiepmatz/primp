@@ -107,7 +107,7 @@ Deno.test("nodePrefix separates node: imports from other packages", () => {
   stdExpect(config.separateBy).toEqual([
     separators.sideEffect,
     separators.packageSource,
-    separators.namespace,
+    separators.typeOnly,
   ]);
   stdExpect(config.separateBy).not.toContain(separators.nodePrefix);
 

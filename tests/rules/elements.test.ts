@@ -98,7 +98,6 @@ Deno.test("default specifier rule sorts Deno-style names and retains multiline c
       india,
     } from "phonetic";
     import { a as z, A, b, B, type Beta, z as a, type Zebra } from "pkg";
-
     import {} from "x";
   `;
   expect(input).viaRules(config).toBe(expected);

@@ -232,7 +232,6 @@ Deno.test("default declaration rules sort and group imports", () => {
 
   const expected = ts`
     import { a, Alpha, Zoo } from "beta";
-
     import * as ns from "alpha";
 
     import local from "./z";
