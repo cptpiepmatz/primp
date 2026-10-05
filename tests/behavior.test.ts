@@ -1,14 +1,5 @@
-import assert from "node:assert/strict";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { expect } from "@std/expect";
+import { fromFileUrl, join } from "@std/path";
 
 import {
   ConfigHandler,
@@ -23,19 +14,19 @@ import { main } from "@primp/primp/cli";
 import { sourceType } from "@primp/primp/rules/imports";
 
 Deno.test("CLI uses one cwd config for multiple files and directories", async () => {
-  const root = mkdtempSync(join(tmpdir(), "primp-multi-"));
+  const root = Deno.makeTempDirSync({ prefix: "primp-multi-" });
   const cwd = Deno.cwd();
   try {
     const first = join(root, "first");
     const second = join(root, "second");
     const output = join(root, "out");
-    mkdirSync(first);
-    mkdirSync(second);
-    writeFileSync(
+    Deno.mkdirSync(first);
+    Deno.mkdirSync(second);
+    Deno.writeTextFileSync(
       join(root, "primp.config.ts"),
       'export default { formatting: { quoteStyle: "single" } };',
     );
-    writeFileSync(
+    Deno.writeTextFileSync(
       join(first, "primp.config.ts"),
       'export default { formatting: { quoteStyle: "double" } };',
     );
@@ -43,33 +34,23 @@ Deno.test("CLI uses one cwd config for multiple files and directories", async ()
     const a = join(first, "same.ts");
     const b = join(first, "other.ts");
     const c = join(second, "same.ts");
-    for (const path of [a, b, c]) writeFileSync(path, original);
+    for (const path of [a, b, c]) Deno.writeTextFileSync(path, original);
 
     Deno.chdir(root);
     await main(["--output", output, a, b, c]);
-    assert.equal(
-      readFileSync(join(output, "first", "same.ts"), "utf8"),
-      "import a from 'a';\nimport z from 'z';\n",
-    );
-    assert.equal(
-      readFileSync(join(output, "first", "other.ts"), "utf8"),
-      "import a from 'a';\nimport z from 'z';\n",
-    );
-    assert.equal(
-      readFileSync(join(output, "second", "same.ts"), "utf8"),
-      "import a from 'a';\nimport z from 'z';\n",
-    );
-    assert.equal(readFileSync(a, "utf8"), original);
+    expect(Deno.readTextFileSync(join(output, "first", "same.ts")))
+      .toBe("import a from 'a';\nimport z from 'z';\n");
+    expect(Deno.readTextFileSync(join(output, "first", "other.ts")))
+      .toBe("import a from 'a';\nimport z from 'z';\n");
+    expect(Deno.readTextFileSync(join(output, "second", "same.ts")))
+      .toBe("import a from 'a';\nimport z from 'z';\n");
+    expect(Deno.readTextFileSync(a)).toBe(original);
 
     await main(["--output", output, first, a, second]);
-    assert.equal(
-      readFileSync(join(output, "first", "same.ts"), "utf8"),
-      "import a from 'a';\nimport z from 'z';\n",
-    );
-    assert.equal(
-      readFileSync(join(output, "second", "same.ts"), "utf8"),
-      "import a from 'a';\nimport z from 'z';\n",
-    );
+    expect(Deno.readTextFileSync(join(output, "first", "same.ts")))
+      .toBe("import a from 'a';\nimport z from 'z';\n");
+    expect(Deno.readTextFileSync(join(output, "second", "same.ts")))
+      .toBe("import a from 'a';\nimport z from 'z';\n");
     await main([
       "--config",
       join(first, "primp.config.ts"),
@@ -78,59 +59,53 @@ Deno.test("CLI uses one cwd config for multiple files and directories", async ()
       a,
       c,
     ]);
-    assert.equal(
-      readFileSync(join(output, "second", "same.ts"), "utf8"),
-      'import a from "a";\nimport z from "z";\n',
-    );
+    expect(Deno.readTextFileSync(join(output, "second", "same.ts")))
+      .toBe('import a from "a";\nimport z from "z";\n');
   } finally {
     Deno.chdir(cwd);
-    rmSync(root, { recursive: true, force: true });
+    Deno.removeSync(root, { recursive: true });
   }
 });
 
 Deno.test("directory scans include JavaScript only with its extractor", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-js-scan-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-js-scan-" });
   try {
     const nested = join(dir, "nested");
-    mkdirSync(nested);
+    Deno.mkdirSync(nested);
     const tsFile = join(dir, "a.ts");
     const jsFiles = ["b.js", "c.jsx", "d.mjs", "e.cjs"].map((name) =>
       join(nested, name)
     );
     const original = 'import z from "z";\nimport a from "a";\n';
-    writeFileSync(tsFile, original);
-    for (const file of jsFiles) writeFileSync(file, original);
-    writeFileSync(join(nested, "ignore.txt"), original);
-    assert.deepEqual(FileManager.getFiles(dir, true), [tsFile]);
+    Deno.writeTextFileSync(tsFile, original);
+    for (const file of jsFiles) Deno.writeTextFileSync(file, original);
+    Deno.writeTextFileSync(join(nested, "ignore.txt"), original);
+    expect(FileManager.getFiles(dir, true)).toEqual([tsFile]);
     const configPath = join(dir, "primp.config.ts");
-    writeFileSync(configPath, "export default {};");
+    Deno.writeTextFileSync(configPath, "export default {};");
     await main(["--config", configPath, "-r", dir]);
-    assert.equal(
-      readFileSync(tsFile, "utf8"),
-      'import a from "a";\nimport z from "z";\n',
-    );
+    expect(Deno.readTextFileSync(tsFile))
+      .toBe('import a from "a";\nimport z from "z";\n');
     for (const file of jsFiles) {
-      assert.equal(readFileSync(file, "utf8"), original);
+      expect(Deno.readTextFileSync(file)).toBe(original);
     }
 
     const jsConfigPath = join(dir, "js.config.ts");
-    writeFileSync(
+    Deno.writeTextFileSync(
       jsConfigPath,
       `import { jsExtractor } from "${
         new URL("../packages/primp/mod.ts", import.meta.url).href
       }";\nexport default { extractors: [jsExtractor] };`,
     );
     const config = await ConfigHandler.load(jsConfigPath);
-    assert.equal(config.extractors.length, 1);
+    expect(config.extractors).toHaveLength(1);
     await main(["--config", jsConfigPath, "-r", dir]);
     for (const file of jsFiles) {
-      assert.equal(
-        readFileSync(file, "utf8"),
-        'import a from "a";\nimport z from "z";\n',
-      );
+      expect(Deno.readTextFileSync(file))
+        .toBe('import a from "a";\nimport z from "z";\n');
     }
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });
 
@@ -138,210 +113,202 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
   const text =
     `import {type User as Person, z as a} from 'pkg' with { type: 'json' };\n`;
   const { sourceFile, imports } = parseImports(text);
-  assert.deepEqual(imports[0].attributes, {
+  expect(imports[0].attributes).toEqual({
     with: [{ key: { name: "type", type: "identifier" }, value: "'json'" }],
   });
-  assert.equal(imports[0].elements[0].isTypeOnly, true);
-  assert.equal(imports[0].elements[0].originalName, "User");
-  assert.equal(
+  expect(imports[0].elements[0].isTypeOnly).toBe(true);
+  expect(imports[0].elements[0].originalName).toBe("User");
+  expect(
     new ImportIntegrator({ quoteStyle: "single" }).integrate(
       sourceFile,
       imports,
     ),
+  ).toBe(
     `import { type User as Person, z as a } from 'pkg' with { type: 'json' };\n`,
   );
-  assert.equal(
-    parseImports("const x = 1;\nimport z from 'z';").imports.length,
+  expect(parseImports("const x = 1;\nimport z from 'z';").imports).toHaveLength(
     0,
   );
   const plain = parseImports('import plain from "plain";').imports[0];
-  assert.deepEqual(plain.attributes, {});
-  assert.equal(plain.attributes.with, undefined);
-  assert.equal(plain.attributes.assert, undefined);
+  expect(plain.attributes).toEqual({});
+  expect(plain.attributes.with).toBeUndefined();
+  expect(plain.attributes.assert).toBeUndefined();
   const asserted = parseImports(
     'import data from "./data.json" assert { type: "json" };',
   ).imports[0];
-  assert.deepEqual(asserted.attributes, {
+  expect(asserted.attributes).toEqual({
     assert: [{ key: { name: "type", type: "identifier" }, value: '"json"' }],
   });
-  assert.equal(
-    asserted.toString(),
+  expect(asserted.toString()).toBe(
     'import data from "./data.json" assert { type: "json" };',
   );
   const multiple = parseImports(
     `import data from "./data.json" with { type: "json", "mode": 'strict' };`,
   ).imports[0];
-  assert.deepEqual(multiple.attributes, {
+  expect(multiple.attributes).toEqual({
     with: [
       { key: { name: "type", type: "identifier" }, value: '"json"' },
-      { key: { name: "mode", type: "stringLiteral" }, value: "'strict'" },
+      { key: { name: "mode", type: "literal" }, value: "'strict'" },
     ],
   });
-  assert.equal(
-    multiple.toString(),
+  expect(multiple.toString()).toBe(
     `import data from "./data.json" with { type: "json", "mode": 'strict' };`,
   );
-  assert.equal(new ImportSeparator([]).insertSeparator([]).length, 0);
+  expect(new ImportSeparator([]).insertSeparator([])).toHaveLength(0);
   const invalid = parseImports('import { from "broken";\n');
-  assert.equal(invalid.imports.length, 0);
-  assert.equal(
-    new ImportIntegrator().integrate(invalid.sourceFile, invalid.imports),
-    invalid.sourceFile.text,
-  );
+  expect(invalid.imports).toHaveLength(0);
+  expect(new ImportIntegrator().integrate(invalid.sourceFile, invalid.imports))
+    .toBe(invalid.sourceFile.text);
   const commented =
     `import z from "z"; // keep with import\nimport a from "a";\n`;
   const parsed = parseImports(commented);
-  assert.equal(
+  expect(
     new ImportIntegrator().integrate(
       parsed.sourceFile,
       parsed.imports.reverse(),
     ),
-    commented,
-  );
+  ).toBe(commented);
 });
 
 Deno.test("legacy formatting options remain available", () => {
   const long = parseImports(
     `import {alfa, bravo, charlie, delta, echo, foxtrot, golf, hotel, india} from "phonetic";\n`,
   );
-  assert.equal(
+  expect(
     new ImportIntegrator({ bracketIndent: 0, trailingComma: false }).integrate(
       long.sourceFile,
       long.imports,
     ),
+  ).toBe(
     `import {\n  alfa,\n  bravo,\n  charlie,\n  delta,\n  echo,\n  foxtrot,\n  golf,\n  hotel,\n  india\n} from "phonetic";\n`,
   );
   const single = parseImports(
     `import SuperLongDefaultNameThatCannotFitWithinEightyColumnsWithItsSourcePath from "./path";\n`,
   );
-  assert.match(
+  expect(
     new ImportIntegrator({ breakFrom: true }).integrate(
       single.sourceFile,
       single.imports,
     ),
-    /\n {2}from "\.\/path"/,
-  );
+  ).toMatch(/\n {2}from "\.\/path"/);
 });
 
 Deno.test("configuration discovery, file filtering and output newline retention", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-" });
   try {
-    mkdirSync(join(dir, "nested"));
+    Deno.mkdirSync(join(dir, "nested"));
     const configPath = join(dir, "primp.config.ts");
-    writeFileSync(
+    Deno.writeTextFileSync(
       configPath,
       `export default { formatting: { quoteStyle: 'single' }, sortImports: [(a: { source: { name: string } }, b: { source: { name: string } }) => a.source.name.localeCompare(b.source.name)], sortImportElements: [], separateBy: [] };`,
     );
     const file = join(dir, "nested", "sample.ts");
-    writeFileSync(file, `import b from "b";\r\nimport a from "a";\r\n`);
-    assert.equal(new FileManager(file).imports.get(file)?.imports.length, 2);
-    writeFileSync(join(dir, "nested", "ignore.txt"), "hi");
-    assert.equal(ConfigHandler.findConfig(file), configPath);
-    assert.deepEqual(FileManager.getFiles(join(dir, "nested")), [file]);
+    Deno.writeTextFileSync(
+      file,
+      `import b from "b";\r\nimport a from "a";\r\n`,
+    );
+    expect(new FileManager(file).imports.get(file)?.imports).toHaveLength(2);
+    Deno.writeTextFileSync(join(dir, "nested", "ignore.txt"), "hi");
+    expect(ConfigHandler.findConfig(file)).toBe(configPath);
+    expect(FileManager.getFiles(join(dir, "nested"))).toEqual([file]);
     const output = join(dir, "out");
     await main(["--config", configPath, "--output", output, file]);
-    assert.equal(
-      readFileSync(join(output, "sample.ts"), "utf8"),
-      `import a from 'a';\r\nimport b from 'b';\r\n`,
-    );
-    assert.match(readFileSync(file, "utf8"), /import b/);
+    expect(Deno.readTextFileSync(join(output, "sample.ts")))
+      .toBe(`import a from 'a';\r\nimport b from 'b';\r\n`);
+    expect(Deno.readTextFileSync(file)).toMatch(/import b/);
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });
 
 Deno.test("TypeScript config imports a comparator relative to its own file", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-rules-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-rules-" });
   try {
     const rulePath = join(dir, "reverse.mjs");
-    writeFileSync(
+    Deno.writeTextFileSync(
       rulePath,
       "export default (a, b) => b.source.name.localeCompare(a.source.name);\n",
     );
     const configPath = join(dir, "primp.config.ts");
-    writeFileSync(
+    Deno.writeTextFileSync(
       configPath,
       'import reverse from "./reverse.mjs";\nexport default { sortImports: [reverse], sortImportElements: [], separateBy: [] };\n',
     );
     const file = join(dir, "file.ts");
-    writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
+    Deno.writeTextFileSync(file, 'import a from "a";\nimport b from "b";\n');
     await main(["--config", configPath, file]);
-    assert.equal(
-      readFileSync(file, "utf8"),
-      'import b from "b";\nimport a from "a";\n',
-    );
+    expect(Deno.readTextFileSync(file))
+      .toBe('import b from "b";\nimport a from "a";\n');
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });
 
 Deno.test("inline TypeScript comparators and separators are used by the CLI", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-inline-rule-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-inline-rule-" });
   try {
     const configPath = join(dir, "primp.config.ts");
-    writeFileSync(
+    Deno.writeTextFileSync(
       configPath,
       "export default { sortImports: [(a: { source: { name: string } }, b: { source: { name: string } }) => b.source.name.localeCompare(a.source.name)], sortImportElements: [], separateBy: [(a: { source: { name: string } }, b: { source: { name: string } }) => a.source.name !== b.source.name] };",
     );
     const file = join(dir, "file.ts");
-    writeFileSync(file, 'import a from "a";\nimport b from "b";\n');
+    Deno.writeTextFileSync(file, 'import a from "a";\nimport b from "b";\n');
     await main(["--config", configPath, file]);
-    assert.equal(
-      readFileSync(file, "utf8"),
-      'import b from "b";\n\nimport a from "a";\n',
-    );
+    expect(Deno.readTextFileSync(file))
+      .toBe('import b from "b";\n\nimport a from "a";\n');
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });
 
 Deno.test("primp configs are discovered and explicit paths work", async () => {
-  const root = mkdtempSync(join(tmpdir(), "primp-configs-"));
+  const root = Deno.makeTempDirSync({ prefix: "primp-configs-" });
   try {
     for (const extension of ["ts", "mts", "js", "mjs"]) {
       const project = join(root, extension);
-      mkdirSync(project);
+      Deno.mkdirSync(project);
       const configPath = join(project, `primp.config.${extension}`);
-      writeFileSync(
+      Deno.writeTextFileSync(
         configPath,
         'export default { sortImports: [(a, b) => a.source.name.localeCompare(b.source.name)], formatting: { quoteStyle: "single" } };',
       );
       const source = join(project, "input.ts");
-      writeFileSync(source, 'import b from "b";\nimport a from "a";\n');
-      assert.equal(ConfigHandler.findConfig(source), configPath);
-      await main(["--config", configPath, source]);
-      assert.equal(
-        readFileSync(source, "utf8"),
-        "import a from 'a';\nimport b from 'b';\n",
+      Deno.writeTextFileSync(
+        source,
+        'import b from "b";\nimport a from "a";\n',
       );
+      expect(ConfigHandler.findConfig(source)).toBe(configPath);
+      await main(["--config", configPath, source]);
+      expect(Deno.readTextFileSync(source))
+        .toBe("import a from 'a';\nimport b from 'b';\n");
     }
     const custom = join(root, "custom.ts");
-    writeFileSync(custom, "export default { sortImports: [] };");
-    assert.deepEqual((await ConfigHandler.load(custom)).sortImports, []);
-    await assert.rejects(ConfigHandler.load(join(root, "missing.json")));
+    Deno.writeTextFileSync(custom, "export default { sortImports: [] };");
+    expect((await ConfigHandler.load(custom)).sortImports).toEqual([]);
+    await expect(ConfigHandler.load(join(root, "missing.json"))).rejects
+      .toThrow();
     const invalid = join(root, "invalid.ts");
-    writeFileSync(invalid, "export default 42;");
-    await assert.rejects(
-      ConfigHandler.load(invalid),
-      /default-export an object/,
-    );
+    Deno.writeTextFileSync(invalid, "export default 42;");
+    await expect(ConfigHandler.load(invalid))
+      .rejects.toThrow(/default-export an object/);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    Deno.removeSync(root, { recursive: true });
   }
 });
 
 Deno.test("example config supports imported custom rules and defineConfig", async () => {
-  const path = fileURLToPath(
+  const path = fromFileUrl(
     new URL("../examples/configs/primp.config.ts", import.meta.url),
   );
   const config = await ConfigHandler.load(path);
-  assert.equal(config.sortImports[1], sourceType);
-  assert.equal(config.formatting.trailingComma, false);
-  assert.equal(config.formatting.breakFrom, true);
+  expect(config.sortImports[1]).toBe(sourceType);
+  expect(config.formatting.trailingComma).toBe(false);
+  expect(config.formatting.breakFrom).toBe(true);
   const imports =
     parseImports('import plain from "plain";\nimport js from "ends.js";')
       .imports;
   new ImportSorter([config.sortImports[2]], []).sort(imports);
-  assert.equal(imports[0].source.name, "ends.js");
-  assert.deepEqual(defineConfig({ sortImports: [] }), { sortImports: [] });
+  expect(imports[0].source.name).toBe("ends.js");
+  expect(defineConfig({ sortImports: [] })).toEqual({ sortImports: [] });
 });

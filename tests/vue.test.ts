@@ -1,15 +1,5 @@
-import assert from "node:assert/strict";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { expect } from "@std/expect";
+import { fromFileUrl, join } from "@std/path";
 
 import {
   defaultConfig,
@@ -25,63 +15,72 @@ import { extractVueScripts, vueExtractor } from "@primp/vue";
 
 const vueConfig = { extractors: [vueExtractor] };
 
+// Indented Vue fixtures with a single final newline.
+function vue(strings: TemplateStringsArray): string {
+  const lines = strings[0].replaceAll("\r\n", "\n").split("\n");
+  if (!lines[0].trim()) lines.shift();
+  if (!lines.at(-1)?.trim()) lines.pop();
+  const indent = Math.min(
+    ...lines.filter((line) => line.trim()).map((line) =>
+      line.match(/^[ \t]*/)?.[0].length ?? 0
+    ),
+  );
+  return lines.map((line) => line.trim() ? line.slice(indent) : "").join("\n") +
+    "\n";
+}
+
 Deno.test("Vue extracts script slices and primp formats them without touching other blocks", () => {
-  const input = `<template><div>{{ message }}</div></template>
-<script lang="ts">
-import z from "z";
-import a from "a";
-const message = z + a;
-</script>
-<script setup lang="ts">
-import y from "y";
-import x from "x";
-</script>
-<style scoped>.test { color: red; }</style>
-`;
-  const expected = `<template><div>{{ message }}</div></template>
-<script lang="ts">
-import a from "a";
-import z from "z";
-const message = z + a;
-</script>
-<script setup lang="ts">
-import x from "x";
-import y from "y";
-</script>
-<style scoped>.test { color: red; }</style>
-`;
+  const input = vue`
+    <template><div>{{ message }}</div></template>
+    <script lang="ts">
+    import z from "z";
+    import a from "a";
+    const message = z + a;
+    </script>
+    <script setup lang="ts">
+    import y from "y";
+    import x from "x";
+    </script>
+    <style scoped>.test { color: red; }</style>
+  `;
+  const expected = vue`
+    <template><div>{{ message }}</div></template>
+    <script lang="ts">
+    import a from "a";
+    import z from "z";
+    const message = z + a;
+    </script>
+    <script setup lang="ts">
+    import x from "x";
+    import y from "y";
+    </script>
+    <style scoped>.test { color: red; }</style>
+  `;
   const slices = extractVueScripts(input);
-  assert.equal(slices.length, 2);
+  expect(slices).toHaveLength(2);
   for (const slice of slices) {
-    assert.equal(input.slice(slice.start, slice.end), slice.content);
+    expect(input.slice(slice.start, slice.end)).toBe(slice.content);
   }
-  assert.equal(formatImports(input, vueConfig, "component.vue"), expected);
-  assert.equal(formatImports(expected, vueConfig, "component.vue"), expected);
+  expect(formatImports(input, vueConfig, "component.vue")).toBe(expected);
+  expect(formatImports(expected, vueConfig, "component.vue")).toBe(expected);
 });
 
 Deno.test("primp defaults to a whole-file slice and uses configured extractors", () => {
   const input = 'import b from "b";\nimport a from "a";\n';
-  assert.deepEqual(extractSource(input, "input.ts"), [{
+  expect(extractSource(input, "input.ts")).toEqual([{
     start: 0,
     end: input.length,
     content: input,
   }]);
-  assert.equal(defaultConfig.extractors[0], tsExtractor);
-  assert.deepEqual(
-    tsExtractor.extract(input, "input.ts"),
-    extractSource(input, "input.ts"),
-  );
-  assert.equal(
-    formatImports(input),
-    'import a from "a";\nimport b from "b";\n',
-  );
-  assert.equal(
-    formatImports(input, { extractors: [jsExtractor] }, "input.js"),
-    'import a from "a";\nimport b from "b";\n',
-  );
-  assert.equal(formatImports(input, {}, "input.js"), input);
-  assert.equal(formatImports(input, {}, "input.txt"), input);
-  assert.throws(
+  expect(defaultConfig.extractors[0]).toBe(tsExtractor);
+  expect(tsExtractor.extract(input, "input.ts"))
+    .toEqual(extractSource(input, "input.ts"));
+  expect(formatImports(input)).toBe('import a from "a";\nimport b from "b";\n');
+  expect(formatImports(input, { extractors: [jsExtractor] }, "input.js"))
+    .toBe('import a from "a";\nimport b from "b";\n');
+  expect(formatImports(input, {}, "input.js")).toBe(input);
+  expect(formatImports(input, {}, "input.txt")).toBe(input);
+  expect(
     () =>
       formatImports(input, {
         extractors: [{
@@ -89,10 +88,9 @@ Deno.test("primp defaults to a whole-file slice and uses configured extractors",
           extract: () => [{ start: -1, end: 3, content: input }],
         }],
       }),
-    RangeError,
-  );
+  ).toThrow(RangeError);
   const embedded = "<code>placeholder</code>";
-  assert.equal(
+  expect(
     formatImports(embedded, {
       extractors: [{
         extensions: ".custom",
@@ -103,9 +101,8 @@ Deno.test("primp defaults to a whole-file slice and uses configured extractors",
         }],
       }],
     }, "input.custom"),
-    '<code>import a from "a";\nimport b from "b";\n</code>',
-  );
-  assert.throws(
+  ).toBe('<code>import a from "a";\nimport b from "b";\n</code>');
+  expect(
     () =>
       formatImports(input, {
         extractors: [{
@@ -116,8 +113,7 @@ Deno.test("primp defaults to a whole-file slice and uses configured extractors",
           ],
         }],
       }),
-    RangeError,
-  );
+  ).toThrow(RangeError);
 });
 
 Deno.test("extractors select the first matching string, regex, or predicate", () => {
@@ -132,79 +128,79 @@ Deno.test("extractors select the first matching string, regex, or predicate", ()
       extract: extractSource,
     },
   ];
-  assert.equal(formatImports(input, { extractors }, "component.vue"), input);
-  assert.equal(formatImports(input, { extractors }, "component.sfc"), input);
-  assert.equal(formatImports(input, { extractors }, "component.sfc"), input);
-  assert.equal(pattern.lastIndex, 2);
-  assert.equal(
-    formatImports(input, { extractors }, "component.custom"),
-    'import a from "a";\nimport b from "b";\n',
-  );
-  assert.equal(
-    formatImports(input, { extractors }, "component.ts"),
-    input,
-  );
+  expect(formatImports(input, { extractors }, "component.vue")).toBe(input);
+  expect(formatImports(input, { extractors }, "component.sfc")).toBe(input);
+  expect(formatImports(input, { extractors }, "component.sfc")).toBe(input);
+  expect(pattern.lastIndex).toBe(2);
+  expect(formatImports(input, { extractors }, "component.custom"))
+    .toBe('import a from "a";\nimport b from "b";\n');
+  expect(formatImports(input, { extractors }, "component.ts")).toBe(input);
 });
 
 Deno.test("Vue extraction skips external and unsupported scripts", () => {
-  const input = `<template><div /></template>
-<script setup lang="js">
-import a from "a";
-import b from "b";
-</script>
-`;
-  assert.equal(
+  const input = vue`
+    <template><div /></template>
+    <script setup lang="js">
+    import a from "a";
+    import b from "b";
+    </script>
+  `;
+  expect(
     formatImports(input, {
       extractors: [vueExtractor],
       sortImports: [(a, b) => -sourceName(a, b)],
       separateBy: [],
       formatting: { quoteStyle: "single" },
     }, "component.vue"),
-    `<template><div /></template>
-<script setup lang="js">
-import b from 'b';
-import a from 'a';
-</script>
-`,
-  );
+  ).toBe(vue`
+    <template><div /></template>
+    <script setup lang="js">
+    import b from 'b';
+    import a from 'a';
+    </script>
+  `);
   const external = '<script src="./external.ts"></script>';
-  assert.deepEqual(extractVueScripts(external), []);
-  assert.equal(formatImports(external, vueConfig, "component.vue"), external);
+  expect(extractVueScripts(external)).toEqual([]);
+  expect(formatImports(external, vueConfig, "component.vue")).toBe(external);
   const coffee = '<script lang="coffee">\nimport b from "b"\n</script>';
-  assert.deepEqual(extractVueScripts(coffee), []);
+  expect(extractVueScripts(coffee)).toEqual([]);
 });
 
 Deno.test("Vue leaves malformed scripts unchanged", () => {
   const input = '<script setup lang="ts">\nimport { from "broken";\n</script>';
-  assert.equal(formatImports(input, vueConfig, "component.vue"), input);
+  expect(formatImports(input, vueConfig, "component.vue")).toBe(input);
 });
 
 Deno.test("CLI discovers Vue files when the extractor is configured", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-vue-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-vue-" });
   try {
     const path = join(dir, "component.vue");
-    writeFileSync(
+    Deno.writeTextFileSync(
       path,
-      '<template><div /></template>\n<script setup lang="ts">\nimport z from "z";\nimport a from "a";\n</script>\n',
+      vue`
+        <template><div /></template>
+        <script setup lang="ts">
+        import z from "z";
+        import a from "a";
+        </script>
+      `,
     );
-    const config = fileURLToPath(
+    const config = fromFileUrl(
       new URL("../examples/vue/primp.config.ts", import.meta.url),
     );
     await main(["--config", config, dir]);
-    assert.match(
-      readFileSync(path, "utf8"),
-      /import a from "a";\nimport z from "z";/,
-    );
+    expect(Deno.readTextFileSync(path))
+      .toMatch(/import a from "a";\nimport z from "z";/);
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });
 
 Deno.test("CLI discovers files matched by regex and predicate extractors", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-extractors-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-extractors-" });
   try {
     const config = join(dir, "primp.config.ts");
-    writeFileSync(
+    Deno.writeTextFileSync(
       config,
       `export default {
       extractors: [
@@ -214,42 +210,40 @@ Deno.test("CLI discovers files matched by regex and predicate extractors", async
     };`,
     );
     for (const name of ["component.sfc", "component.custom"]) {
-      writeFileSync(
+      Deno.writeTextFileSync(
         join(dir, name),
         'import b from "b";\nimport a from "a";\n',
       );
     }
     await main(["--config", config, dir]);
     for (const name of ["component.sfc", "component.custom"]) {
-      assert.equal(
-        readFileSync(join(dir, name), "utf8"),
-        'import a from "a";\nimport b from "b";\n',
-      );
+      expect(Deno.readTextFileSync(join(dir, name)))
+        .toBe('import a from "a";\nimport b from "b";\n');
     }
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });
 
 Deno.test("CLI skips unmatched explicit and recursive paths and honors the first extractor", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "primp-skip-"));
+  const dir = Deno.makeTempDirSync({ prefix: "primp-skip-" });
   try {
     const nested = join(dir, "nested");
-    mkdirSync(nested);
+    Deno.mkdirSync(nested);
     const original = 'import b from "b";\nimport a from "a";\n';
     for (const name of ["code.ts", "types.d.ts", "unknown.txt"]) {
-      writeFileSync(join(nested, name), original);
+      Deno.writeTextFileSync(join(nested, name), original);
     }
     const config = join(dir, "primp.config.ts");
-    writeFileSync(
+    Deno.writeTextFileSync(
       config,
       `export default { extractors: [
       { extensions: (filename: string) => filename.endsWith(".ts") && !filename.endsWith(".d.ts"), extract: () => [] },
       { extensions: /\\.d\\.ts$/, extract: (source: string) => [{ start: 0, end: source.length, content: source }] },
     ] };`,
     );
-    assert.deepEqual(FileManager.getFiles(join(nested, "unknown.txt")), []);
-    assert.deepEqual(FileManager.getFiles(join(nested, "types.d.ts")), []);
+    expect(FileManager.getFiles(join(nested, "unknown.txt"))).toEqual([]);
+    expect(FileManager.getFiles(join(nested, "types.d.ts"))).toEqual([]);
 
     const output = join(dir, "out");
     await main([
@@ -261,13 +255,12 @@ Deno.test("CLI skips unmatched explicit and recursive paths and honors the first
       nested,
       join(nested, "unknown.txt"),
     ]);
-    assert.equal(readFileSync(join(output, "code.ts"), "utf8"), original);
-    assert.equal(
-      readFileSync(join(output, "types.d.ts"), "utf8"),
-      'import a from "a";\nimport b from "b";\n',
-    );
-    assert.equal(existsSync(join(output, "unknown.txt")), false);
+    expect(Deno.readTextFileSync(join(output, "code.ts"))).toBe(original);
+    expect(Deno.readTextFileSync(join(output, "types.d.ts")))
+      .toBe('import a from "a";\nimport b from "b";\n');
+    expect(() => Deno.statSync(join(output, "unknown.txt")))
+      .toThrow(Deno.errors.NotFound);
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    Deno.removeSync(dir, { recursive: true });
   }
 });

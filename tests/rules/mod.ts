@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import { expect } from "@std/expect";
 
 import {
   ImportIntegrator,
@@ -33,8 +33,7 @@ export function expectReordered(
   const { sourceFile, imports } = parseImports(input);
   const sorted = new ImportSorter(sortImports, sortElements).sort(imports);
   const separated = new ImportSeparator(separators).insertSeparator(sorted);
-  assert.equal(
-    new ImportIntegrator().integrate(sourceFile, separated),
+  expect(new ImportIntegrator().integrate(sourceFile, separated)).toBe(
     expected,
   );
 }
@@ -47,14 +46,14 @@ export function expectImportOrder(
 ): void {
   const imports = parseImports(input).imports;
   const expectedImports = parseImports(expected).imports;
-  assert.equal(imports.length, expectedImports.length);
+  expect(imports).toHaveLength(expectedImports.length);
   new ImportSorter([comparator], []).sort(imports);
-  assert.deepEqual(
-    imports.map((imported) => input.slice(imported.start, imported.end)),
-    expectedImports.map((imported) =>
-      expected.slice(imported.start, imported.end)
-    ),
-  );
+  expect(imports.map((imported) => input.slice(imported.start, imported.end)))
+    .toEqual(
+      expectedImports.map((imported) =>
+        expected.slice(imported.start, imported.end)
+      ),
+    );
 }
 
 export function expectElementOrder(
@@ -71,6 +70,6 @@ export function expectSeparation(
   expected: boolean,
 ): void {
   const imports = parseImports(input).imports;
-  assert.equal(imports.length, 2);
-  assert.equal(separator(imports[0], imports[1]), expected);
+  expect(imports).toHaveLength(2);
+  expect(separator(imports[0], imports[1])).toBe(expected);
 }

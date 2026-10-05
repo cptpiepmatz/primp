@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import { expect } from "@std/expect";
 
 import { ConfigHandler } from "@primp/primp";
 import { sourceType } from "@primp/primp/rules/imports";
@@ -171,12 +171,12 @@ Deno.test("custom source grouping puts a blank line between packages and local i
 
 Deno.test("unequalNodePrefix separates node: imports from other packages", () => {
   const config = new ConfigHandler();
-  assert.deepEqual(config.separateBy, [
+  expect(config.separateBy).toEqual([
     separateBy.unequalSideEffectUse,
     separateBy.unequalPackageState,
     separateBy.unequalNamespaceUse,
   ]);
-  assert.equal(config.separateBy.includes(separateBy.unequalNodePrefix), false);
+  expect(config.separateBy).not.toContain(separateBy.unequalNodePrefix);
   expectSeparation(
     ts`
     import fs from "node:fs";

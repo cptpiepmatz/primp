@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import { expect } from "@std/expect";
 
 import {
   ConfigHandler,
@@ -171,9 +171,9 @@ Deno.test("typeOnly puts type-only declarations before other imports", () => {
 
 Deno.test("default declaration rules sort and group imports", () => {
   const config = new ConfigHandler();
-  assert.equal(config.extractors.length, 1);
-  assert.deepEqual(config.sortImports, defaultConfig.sortImports);
-  assert.equal(config.sortImports[1], compareImports.sourceType);
+  expect(config.extractors).toHaveLength(1);
+  expect(config.sortImports).toEqual(defaultConfig.sortImports);
+  expect(config.sortImports[1]).toBe(compareImports.sourceType);
 
   const input = ts`
     import local from "./z";
@@ -219,13 +219,12 @@ Deno.test("default rules preserve a header and following code", () => {
   const { sourceFile, imports } = parseImports(input);
   const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
     .sort(imports);
-  assert.equal(
+  expect(
     new ImportIntegrator(config.formatting).integrate(
       sourceFile,
       new ImportSeparator(config.separateBy).insertSeparator(sorted),
     ),
-    expected,
-  );
+  ).toBe(expected);
 });
 
 Deno.test("inverse reverses built-in and custom import comparators", () => {
@@ -238,11 +237,10 @@ Deno.test("inverse reverses built-in and custom import comparators", () => {
     import a from "a";
   `;
   const { imports } = parseImports(input);
-  assert.equal(
-    inverse(compareImports.sourceName)(imports[0], imports[1]) > 0,
-    true,
-  );
-  assert.ok(inverse(compareImports.sourceType)(imports[0], imports[1]) === 0);
+  expect(inverse(compareImports.sourceName)(imports[0], imports[1]))
+    .toBeGreaterThan(0);
+  expect(inverse(compareImports.sourceType)(imports[0], imports[1]))
+    .toBeCloseTo(0);
   expectReordered(input, expected, [inverse(compareImports.sourceName)]);
   const byName = (a: Import, b: Import) =>
     a.source.name.localeCompare(b.source.name);
@@ -252,10 +250,8 @@ Deno.test("inverse reverses built-in and custom import comparators", () => {
     import a from "./x";
     import b from "./x/y";
   `).imports;
-  assert.equal(
-    compareImports.pathDepth(relativeImports[0], relativeImports[1]),
-    -1,
-  );
+  expect(compareImports.pathDepth(relativeImports[0], relativeImports[1]))
+    .toBe(-1);
 });
 
 Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
@@ -274,11 +270,11 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
     import local from "./local";
   `;
   const config = new ConfigHandler();
-  assert.equal(config.sortImports.includes(compareImports.nodePrefix), false);
-  assert.equal(config.separateBy.includes(separateBy.unequalNodePrefix), false);
+  expect(config.sortImports).not.toContain(compareImports.nodePrefix);
+  expect(config.separateBy).not.toContain(separateBy.unequalNodePrefix);
   const imports = parseImports(input).imports;
-  assert.equal(compareImports.nodePrefix(imports[2], imports[3]), 0);
-  assert.equal(compareImports.nodePrefix(imports[0], imports[1]), 0);
+  expect(compareImports.nodePrefix(imports[2], imports[3])).toBe(0);
+  expect(compareImports.nodePrefix(imports[0], imports[1])).toBe(0);
   expectReordered(
     input,
     expected,
