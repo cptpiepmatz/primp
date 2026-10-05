@@ -149,6 +149,26 @@ Deno.test("sourceType puts packages before relative imports", () => {
   expectImportOrder(input, expected, compareImports.sourceType);
 });
 
+Deno.test("typeOnly puts type-only declarations before other imports", () => {
+  const input = ts`
+    import { type Inline } from "inline";
+    import type { Named } from "named";
+    import value from "value";
+    import type Default from "default";
+    import "side-effect";
+    import type * as Namespace from "namespace";
+  `;
+  const expected = ts`
+    import type { Named } from "named";
+    import type Default from "default";
+    import type * as Namespace from "namespace";
+    import { type Inline } from "inline";
+    import value from "value";
+    import "side-effect";
+  `;
+  expectImportOrder(input, expected, compareImports.typeOnly);
+});
+
 Deno.test("default declaration rules sort and group imports", () => {
   const config = new ConfigHandler();
   assert.equal(config.extractors.length, 1);

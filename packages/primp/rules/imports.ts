@@ -85,6 +85,26 @@ export const namespacePresence: ImportCompareFunction = function (a, b) {
 };
 
 /**
+ * Compares two imports by whether their source starts with the `node:` prefix.
+ * An import with the prefix is considered lesser (positioned higher).
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import a from "alpha";
+ * import fs from "node:fs";
+ *
+ * // sorted
+ * import fs from "node:fs";
+ * import a from "alpha";
+ * ```
+ */
+export const nodePrefix: ImportCompareFunction = function (a, b) {
+  const startsWithNode = (m: Import) => +(m.source.name.startsWith("node:"));
+  return startsWithNode(b) - startsWithNode(a);
+};
+
+/**
  * Compares two path for their depth.
  * The deeper path is considered greater.
  *
@@ -211,21 +231,21 @@ export const sourceName: ImportCompareFunction = function (a, b) {
 };
 
 /**
- * Compares two imports by whether their source starts with the `node:` prefix.
- * An import with the prefix is considered lesser (positioned higher).
+ * Compares two imports if they only import types.
  *
  * @example
  * ```ts
  * // unsorted
- * import a from "alpha";
- * import fs from "node:fs";
+ * import { a } from "alpha";
+ * import type { b } from "beta";
+ * import { c } from "charlie";
  *
  * // sorted
- * import fs from "node:fs";
- * import a from "alpha";
+ * import type { b } from "beta";
+ * import { a } from "alpha";
+ * import { c } from "charlie";
  * ```
  */
-export const nodePrefix: ImportCompareFunction = function (a, b) {
-  const startsWithNode = (m: Import) => +(m.source.name.startsWith("node:"));
-  return startsWithNode(b) - startsWithNode(a);
+export const typeOnly: ImportCompareFunction = function (a, b) {
+  return +(b.isTypeOnly) - +(a.isTypeOnly);
 };
