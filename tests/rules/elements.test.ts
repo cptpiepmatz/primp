@@ -57,8 +57,8 @@ Deno.test("elementName sorts local bindings alphabetically", () => {
   expect(input).viaRules({ sortImportElements }).toBe(expected);
 });
 
-Deno.test("lowercaseFirst uses imported names before aliases", () => {
-  const sortImportElements = [compareImportElements.lowercaseFirst];
+Deno.test("lowercase uses imported names before aliases", () => {
+  const sortImportElements = [compareImportElements.lowercase];
 
   const input = ts`
     import { B as b, a as A, D as d, c as C } from "pkg";

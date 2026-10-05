@@ -9,7 +9,7 @@ import { specifierName } from "../rules/elements.ts";
 import {
   directoryName,
   namespaceImport,
-  packageFirst,
+  packageSource,
   sideEffect,
   sourceName,
   typeOnly,
@@ -57,7 +57,7 @@ export const defaultConfig: FullConfig = {
   extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
-    packageFirst,
+    packageSource,
     inverse(typeOnly),
     inverse(namespaceImport),
     directoryName,

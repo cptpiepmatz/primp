@@ -214,8 +214,8 @@ Deno.test("sourceName sorts packages and leaves relative imports in place", () =
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
-Deno.test("packageFirst puts packages before relative imports", () => {
-  const sortImports = [compareImports.packageFirst];
+Deno.test("packageSource puts packages before relative imports", () => {
+  const sortImports = [compareImports.packageSource];
 
   const input = ts`
     import d from "./Delta";
@@ -247,7 +247,7 @@ Deno.test("custom source grouping puts a blank line between packages and local i
   `;
 
   expect(input).viaRules({
-    sortImports: [compareImports.packageFirst],
+    sortImports: [compareImports.packageSource],
     separateBy: [separators.packageSource],
   }).toBe(expected);
 });
@@ -282,7 +282,7 @@ Deno.test("default declaration rules sort and group imports", () => {
   const config = new ConfigHandler();
   stdExpect(config.extractors).toHaveLength(1);
   stdExpect(config.sortImports).toEqual(defaultConfig.sortImports);
-  stdExpect(config.sortImports[1]).toBe(compareImports.packageFirst);
+  stdExpect(config.sortImports[1]).toBe(compareImports.packageSource);
 
   const input = ts`
     import local from "./z";
@@ -342,7 +342,7 @@ Deno.test("inverse reverses the source name sorter", () => {
 });
 
 Deno.test("inverse puts relative imports first without reordering packages", () => {
-  const sortImports = [inverse(compareImports.packageFirst)];
+  const sortImports = [inverse(compareImports.packageSource)];
 
   const input = ts`
     import first from "a";

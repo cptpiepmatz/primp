@@ -8,7 +8,7 @@ import {
   parseImports,
 } from "@primp/primp";
 import { main } from "@primp/primp/cli";
-import { packageFirst } from "@primp/primp/rules/imports";
+import { packageSource } from "@primp/primp/rules/imports";
 import { expect } from "@std/expect";
 import { fromFileUrl, join } from "@std/path";
 
@@ -319,7 +319,7 @@ Deno.test("example config supports imported custom rules and defineConfig", asyn
     new URL("../examples/configs/primp.config.ts", import.meta.url),
   );
   const config = await ConfigHandler.load(path);
-  expect(config.sortImports[1]).toBe(packageFirst);
+  expect(config.sortImports[1]).toBe(packageSource);
   expect(config.formatting.trailingComma).toBe(false);
   expect(config.formatting.breakFrom).toBe(true);
   const imports =

@@ -220,7 +220,7 @@ export const sideEffect: ImportCompareFunction = function (a, b) {
  * @see ImportSource#isPackage
  * @see ImportSource#isRelative
  */
-export const packageFirst: ImportCompareFunction = function (a, b) {
+export const packageSource: ImportCompareFunction = function (a, b) {
   const aPackage = a.source.isPackage ? 0 : 1;
   const bPackage = b.source.isPackage ? 0 : 1;
   return aPackage - bPackage;

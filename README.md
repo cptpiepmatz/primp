@@ -135,7 +135,7 @@ import { specifierName } from "jsr:@primp/primp/rules/elements";
 import {
   directoryName,
   namespaceImport,
-  packageFirst,
+  packageSource,
   sideEffect,
   sourceName,
 } from "jsr:@primp/primp/rules/imports";
@@ -145,7 +145,7 @@ export default {
   extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
-    packageFirst,
+    packageSource,
     inverse(namespaceImport),
     directoryName,
     sourceName,
@@ -177,13 +177,13 @@ formatting:
 import { defineConfig } from "jsr:@primp/primp";
 import {
   elementName,
-  lowercaseFirst,
+  lowercase,
   nameSuffix,
 } from "jsr:@primp/primp/rules/elements";
 
 export default defineConfig({
   sortImportElements: [
-    lowercaseFirst,
+    lowercase,
     nameSuffix,
     elementName,
   ],
@@ -197,14 +197,13 @@ export default defineConfig({
 
 Sorting rules run left to right until the first nonzero comparison. Wrap any
 comparator with `inverse(rule)` to reverse it, including custom comparators and
-named-element rules. Import comparators include `sideEffect`, `packageFirst`,
+named-element rules. Import comparators include `sideEffect`, `packageSource`,
 `namespaceImport`, `defaultImport`, `uppercaseDefault`, `sourceName`,
 `pathDepth`, `directoryName`, `typeOnly`, and `nodePrefix` (`node:` imports
-first). Named-element rules include `lowercaseFirst`, `elementName`,
-`nameSuffix`, and `specifierName`. The `separateBy` option inserts a blank line
-when any listed predicate is true; `separators.nodePrefix` separates `node:`
-imports from other imports. To opt in while retaining the other default rules,
-configure:
+first). Named-element rules include `lowercase`, `elementName`, `nameSuffix`,
+and `specifierName`. The `separateBy` option inserts a blank line when any
+listed predicate is true; `separators.nodePrefix` separates `node:` imports from
+other imports. To opt in while retaining the other default rules, configure:
 
 ```ts
 import { defineConfig, inverse } from "jsr:@primp/primp";
@@ -212,7 +211,7 @@ import {
   directoryName,
   namespaceImport,
   nodePrefix,
-  packageFirst,
+  packageSource,
   sideEffect,
   sourceName,
 } from "jsr:@primp/primp/rules/imports";
@@ -222,7 +221,7 @@ export default defineConfig({
   sortImports: [
     nodePrefix,
     inverse(sideEffect),
-    packageFirst,
+    packageSource,
     inverse(namespaceImport),
     directoryName,
     sourceName,

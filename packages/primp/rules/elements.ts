@@ -3,8 +3,7 @@
  *
  * Rule names describe what is compared or which elements come first. A rule
  * named for a feature puts elements with that feature first (compares them as
- * lesser); names such as `lowercaseFirst` state the ordering directly. Name
- * comparisons are ascending. Prefer `inverse(rule)` over a negatively named
+ * lesser). Name comparisons are ascending. Prefer `inverse(rule)` over a negatively named
  * rule to reverse an ordering.
  *
  * @module
@@ -103,7 +102,7 @@ export const elementName: ImportElementCompareFunction = function (a, b) {
  * import {a, d, B, C} from "alphabet";
  * ```
  */
-export const lowercaseFirst: ImportElementCompareFunction = function (a, b) {
+export const lowercase: ImportElementCompareFunction = function (a, b) {
   return +startsWithUppercase(a) - +startsWithUppercase(b);
 };
 

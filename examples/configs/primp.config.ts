@@ -1,32 +1,32 @@
 import { defineConfig, inverse } from "@primp/primp";
 import {
   elementName,
-  lowercaseFirst,
+  lowercase,
   nameSuffix,
 } from "@primp/primp/rules/elements";
 import {
   directoryName,
   namespaceImport,
-  packageFirst,
+  packageSource,
   sideEffect,
   sourceName,
 } from "@primp/primp/rules/imports";
 import * as separators from "@primp/primp/rules/separators";
 
-import dotJSFirst from "../compare_functions/imports/dotJSFirst.ts";
+import dotJS from "../compare_functions/imports/dotJS.ts";
 
 // Opt in to the original import order, grouping, and formatting.
 export default defineConfig({
   sortImports: [
     inverse(sideEffect),
-    packageFirst,
-    dotJSFirst,
+    packageSource,
+    dotJS,
     inverse(namespaceImport),
     directoryName,
     sourceName,
   ],
   sortImportElements: [
-    lowercaseFirst,
+    lowercase,
     nameSuffix,
     elementName,
   ],

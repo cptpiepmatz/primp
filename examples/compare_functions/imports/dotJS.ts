@@ -6,7 +6,7 @@ import type { ImportCompareFunction } from "@primp/primp";
  * @param importA Import A
  * @param importB Import B
  */
-const dotJSFirst: ImportCompareFunction = function (importA, importB): number {
+const dotJS: ImportCompareFunction = function (importA, importB): number {
   const matcher = /\.[Jj][Ss]$/;
   const matchesA = !!importA.source.name.match(matcher);
   const matchesB = !!importB.source.name.match(matcher);
@@ -15,4 +15,4 @@ const dotJSFirst: ImportCompareFunction = function (importA, importB): number {
   return 0;
 };
 
-export default dotJSFirst;
+export default dotJS;
