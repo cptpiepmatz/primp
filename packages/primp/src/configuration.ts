@@ -4,7 +4,6 @@ import { pathToFileURL } from "node:url";
 
 import { defaultFormattingOptions } from "./core.ts";
 import { tsExtractor } from "./extractors.ts";
-import { inverse } from "./rules.ts";
 import { specifierName } from "../rules/elements.ts";
 import {
   directoryName,
@@ -15,6 +14,7 @@ import {
   typeOnly,
 } from "../rules/imports.ts";
 
+import * as ops from "./rules.ts";
 import * as separators from "../rules/separators.ts";
 
 import type { FormattingOptions } from "./core.ts";
@@ -57,16 +57,17 @@ export type FullConfig = Required<Config> & {
 export const defaultConfig: FullConfig = {
   extractors: [tsExtractor],
   sortImports: [
-    inverse(sideEffect),
-    inverse(typeOnly),
+    ops.inverse(sideEffect),
+    ops.inverse(typeOnly),
     packageSource,
-    inverse(namespaceImport),
+    ops.inverse(namespaceImport),
     directoryName,
     sourceName,
   ],
   sortImportElements: [specifierName],
   separateBy: [
     separators.sideEffect,
+    separators.typeOnly,
     separators.packageSource,
     separators.namespace,
   ],

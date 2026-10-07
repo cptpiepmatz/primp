@@ -1,9 +1,71 @@
-import { ConfigHandler } from "@primp/primp";
+import { and, ConfigHandler, not, or, parseImports, xor } from "@primp/primp";
 import { expect as stdExpect } from "@std/expect";
 
 import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";
+
+Deno.test("separator combinators combine predicates at each boundary", () => {
+  const { imports } = parseImports(ts`
+    import "a";
+    import b from "b";
+    import c from "./c";
+    import "d";
+    import e from "e";
+    import f from "f";
+  `);
+  // Consecutive boundaries: (true, false), (false, true),
+  // (true, true), (true, false), (false, false).
+  const results = (rule: typeof separators.sideEffect) =>
+    imports.slice(1).map((following, index) => rule(imports[index], following));
+
+  stdExpect(results(and(separators.sideEffect, separators.packageSource)))
+    .toEqual([false, false, true, false, false]);
+  stdExpect(
+    results(and(separators.sideEffect, separators.packageSource, () => true)),
+  )
+    .toEqual([false, false, true, false, false]);
+  stdExpect(results(or(separators.sideEffect, separators.packageSource)))
+    .toEqual([true, true, true, true, false]);
+  stdExpect(
+    results(or(separators.sideEffect, separators.packageSource, () => false)),
+  )
+    .toEqual([true, true, true, true, false]);
+  stdExpect(results(xor(separators.sideEffect, separators.packageSource)))
+    .toEqual([true, true, false, true, false]);
+  stdExpect(results(not(separators.sideEffect)))
+    .toEqual([false, true, false, false, true]);
+  stdExpect(results(and())).toEqual([true, true, true, true, true]);
+  stdExpect(results(or())).toEqual([false, false, false, false, false]);
+});
+
+Deno.test("composed separator rules work in separateBy", () => {
+  const input = ts`
+    import "a";
+    import b from "b";
+    import c from "./c";
+    import "d";
+    import e from "e";
+  `;
+  const expected = ts`
+    import "a";
+    import b from "b";
+    import c from "./c";
+
+    import "d";
+    import e from "e";
+  `;
+
+  expect(input).viaRules({
+    separateBy: [and(
+      separators.sideEffect,
+      not(xor(
+        separators.sideEffect,
+        separators.packageSource,
+      )),
+    )],
+  }).toBe(expected);
+});
 
 Deno.test("deferred separates deferred imports from other imports", () => {
   const input = ts`

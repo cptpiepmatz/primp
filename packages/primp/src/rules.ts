@@ -83,6 +83,31 @@ export function inverse<T>(
   };
 }
 
+/** Separate only when every predicate matches (including an empty set). */
+export function and(...rules: SeparateByFunction[]): SeparateByFunction {
+  return (leading, following) =>
+    rules.every((rule) => rule(leading, following));
+}
+
+/** Separate when the predicate does not match. */
+export function not(rule: SeparateByFunction): SeparateByFunction {
+  return (leading, following) => !rule(leading, following);
+}
+
+/** Separate when at least one predicate matches. */
+export function or(...rules: SeparateByFunction[]): SeparateByFunction {
+  return (leading, following) => rules.some((rule) => rule(leading, following));
+}
+
+/** Separate when exactly one of the two predicates matches. */
+export function xor(
+  left: SeparateByFunction,
+  right: SeparateByFunction,
+): SeparateByFunction {
+  return (leading, following) =>
+    left(leading, following) !== right(leading, following);
+}
+
 /** Sort imports and their specifiers using ordered comparator functions. */
 export class ImportSorter {
   /** Ordered import-declaration comparators. */
