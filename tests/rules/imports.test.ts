@@ -1,11 +1,12 @@
 import { ConfigHandler, defaultConfig, inverse } from "@primp/primp";
 import { expect as stdExpect } from "@std/expect";
+
 import * as compareImports from "@primp/primp/rules/imports";
 import * as separators from "@primp/primp/rules/separators";
 
-import type { Import } from "@primp/primp";
-
 import { expect, ts } from "./mod.ts";
+
+import type { Import } from "@primp/primp";
 
 Deno.test("defaultImport puts imports with default bindings first", () => {
   const sortImports = [compareImports.defaultImport];
@@ -282,7 +283,7 @@ Deno.test("default declaration rules sort and group imports", () => {
   const config = new ConfigHandler();
   stdExpect(config.extractors).toHaveLength(1);
   stdExpect(config.sortImports).toEqual(defaultConfig.sortImports);
-  stdExpect(config.sortImports[1]).toBe(compareImports.packageSource);
+  stdExpect(config.sortImports[2]).toBe(compareImports.packageSource);
 
   const input = ts`
     import local from "./z";
@@ -293,6 +294,7 @@ Deno.test("default declaration rules sort and group imports", () => {
 
   const expected = ts`
     import { a, Alpha, Zoo } from "beta";
+
     import * as ns from "alpha";
 
     import local from "./z";
@@ -301,6 +303,18 @@ Deno.test("default declaration rules sort and group imports", () => {
   `;
 
   expect(input).viaRules(config).toBe(expected);
+});
+
+Deno.test("default rules do not separate type-only imports", () => {
+  const input = ts`
+    import value from "b";
+    import type Type from "a";
+  `;
+  const expected = ts`
+    import value from "b";
+    import type Type from "a";
+  `;
+  expect(input).viaRules(new ConfigHandler()).toBe(expected);
 });
 
 Deno.test("default rules preserve a header and following code", () => {

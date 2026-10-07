@@ -14,6 +14,7 @@ import {
   sourceName,
   typeOnly,
 } from "../rules/imports.ts";
+
 import * as separators from "../rules/separators.ts";
 
 import type { FormattingOptions } from "./core.ts";
@@ -57,8 +58,8 @@ export const defaultConfig: FullConfig = {
   extractors: [tsExtractor],
   sortImports: [
     inverse(sideEffect),
-    packageSource,
     inverse(typeOnly),
+    packageSource,
     inverse(namespaceImport),
     directoryName,
     sourceName,
@@ -67,7 +68,7 @@ export const defaultConfig: FullConfig = {
   separateBy: [
     separators.sideEffect,
     separators.packageSource,
-    separators.typeOnly,
+    separators.namespace,
   ],
   formatting: { ...defaultFormattingOptions },
 };

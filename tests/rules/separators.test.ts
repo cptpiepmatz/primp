@@ -1,5 +1,6 @@
 import { ConfigHandler } from "@primp/primp";
 import { expect as stdExpect } from "@std/expect";
+
 import * as separators from "@primp/primp/rules/separators";
 
 import { expect, ts } from "./mod.ts";
@@ -174,7 +175,7 @@ Deno.test("nodePrefix separates node: imports from other packages", () => {
   stdExpect(config.separateBy).toEqual([
     separators.sideEffect,
     separators.packageSource,
-    separators.typeOnly,
+    separators.namespace,
   ]);
   stdExpect(config.separateBy).not.toContain(separators.nodePrefix);
 
