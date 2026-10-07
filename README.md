@@ -1,111 +1,101 @@
 <p align="center">
-  <img width="250" alt="primp logo" src="./icon/primp.svg">
+  <img width="250" alt="primp logo" src="https://raw.githubusercontent.com/cptpiepmatz/primp/a2a2b6051eb08e47b23f6ba32ebd01288a135394/icon/primp.svg">
 </p>
 <h1 align="center">primp</h1>
-<h3 align="center">TypeScript and Vue import formatter</h3>
 <p align="center">
-  <b>Sort your TS imports with rules of your own.</b>
+  <b>Sort your TypeScript imports with rules of your own.</b>
 </p>
 
 <br>
 
 <div align="center">
 
-[![JSR (placeholder)](https://img.shields.io/badge/JSR-pending%20release-8683F2?style=for-the-badge)](https://jsr.io/@primp/primp)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3%E2%80%936.x-3178C6?style=for-the-badge)](https://www.typescriptlang.org/)
+[![JSR](https://img.shields.io/badge/JSR-pending%20release-8683F2?style=for-the-badge)](https://jsr.io/@primp/primp)
+[![Deno](https://img.shields.io/badge/Deno-2+-000000?style=for-the-badge&logo=deno)](https://deno.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-22.18+-339933?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 [![License](https://img.shields.io/github/license/cptpiepmatz/primp?style=for-the-badge)](./LICENSE)
 [![Test](https://img.shields.io/github/actions/workflow/status/cptpiepmatz/primp/test.yml?label=Test&style=for-the-badge)](./.github/workflows/test.yml)
 
 </div>
 
-**primp** formats the leading block of TypeScript imports using the TypeScript
-parser. By default, it sorts and groups imports by side effects, source kind,
-and path, while formatting named specifiers compatibly with `deno fmt`. The
-rules are configurable. The rest of the file stays intact.
+## About
+
+**primp** is an import formatter for TypeScript, with optional JavaScript and
+Vue support. It parses imports using the TypeScript parser, sorts them with a
+chain of rules, and groups them with blank lines. You can use the defaults or
+define exactly how your imports should look.
+
+The formatter works on the leading import block and leaves the rest of your code
+intact. Use it from the command line or as a library in your own tooling.
+
+## Features
+
+- **Your own import order:** Combine built-in comparators, reverse them, or
+  write custom functions in a TypeScript config.
+- **Separate sorting and grouping:** Decide both where imports belong and where
+  blank lines go.
+- **Consistent formatting:** Sort named specifiers and configure quotes,
+  indentation, and line wrapping. Defaults work with `deno fmt`.
+- **Modern syntax:** Preserve type-only imports, inline `type` specifiers, and
+  import attributes.
+- **CLI workflow:** Process several paths, recurse through directories, watch
+  files, or check formatting in CI.
+- **Extensible file support:** Register extractors for JavaScript, Vue SFCs, or
+  your own source format.
+
+## Packages
+
+| Package                                        | What it provides                                                            |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| [**@primp/primp**](./packages/primp/README.md) | Import formatter, CLI, configuration, and built-in rules.                   |
+| [**@primp/vue**](./packages/vue/README.md)     | An extractor for imports inside Vue `<script>` and `<script setup>` blocks. |
+
+The core package does not depend on Vue. Add the adapter when you need to format
+single-file components.
 
 ## Installation
 
-Primp requires **Deno 2+** or **Node.js 22.18+** (for native TypeScript type
-stripping). The core package targets JSR as `@primp/primp`. These installation
-commands apply after its first release.
+Primp supports **Deno 2+** and **Node.js 22.18+**. Packages target
+[JSR](https://jsr.io/@primp); the commands below apply after the first release.
 
 ```sh
 # Deno
 deno add jsr:@primp/primp
 
-# Node.js, using JSR's npm compatibility bridge with npm
+# Node.js, through JSR's npm compatibility bridge
 npx jsr add --npm @primp/primp
+```
 
-# Install the CLI as a global command with Deno (also usable in Node projects)
+To make `primp` available as a global command, install the CLI with Deno:
+
+```sh
 deno install --global --allow-read --allow-write --allow-env --name primp jsr:@primp/primp/cli
 ```
 
-The parser supports TypeScript 5.3.3 through 6.x (verified against 5.3.3, 5.9.3,
-and 6.0.3). The published package depends on TypeScript 6.x; npm can install it
-alongside a project's TypeScript 5.x or 7.x. When running from source, a Deno
-import map can instead select a compatible 5.x parser. TypeScript 7.x cannot
-replace the parser dependency because its root export no longer provides the
-APIs used here.
-
 ## Usage
 
-Run primp on a file or directory. For example, to process `src` recursively:
+```sh
+# Format a directory recursively
+primp src -r
+
+# Format several files or directories
+primp src tests index.ts -r
+
+# Check formatting without writing files
+primp src -r --check
+```
+
+You can also run the CLI directly:
 
 ```sh
 # Deno
 deno run --allow-read --allow-write --allow-env jsr:@primp/primp/cli src -r
 
-# After the global Deno CLI install above
-primp src -r
-
-# Node.js, after `npx jsr add --npm` in this project
+# Node.js, after installing the package through JSR
 node node_modules/@primp/primp/cli.js src -r
 ```
 
-You can also pass several files or directories in one invocation, including
-paths expanded by a shell or another tool (for example,
-`primp src/*.ts tests/*.ts`). Primp discovers one config from the current
-working directory for all inputs, unless `--config` is provided. With
-`--output`, results from multiple folders retain their relative directory
-structure.
-
-The JSR package exports `/cli` for direct Deno execution and as a module for
-Node. JSR's npm compatibility bridge transpiles `cli.ts` to `cli.js` in the
-installed package, which Node can run directly. The generated npm-compatible
-package has no `bin` metadata, so `npx @primp/primp` and global npm executable
-installs are not supported. The global `primp` command installed with
-`deno install` runs under Deno and requires Deno installed.
-
-### Arguments
-
-Use flags to control how primp handles your files:
-
-- `-r, --recursive` descend into subdirectories
-- `-o, --output DIR` write to another directory instead of updating in place
-- `-c, --config FILE` select a config file
-- `-w, --watch` watch the selected files after the first pass
-- `--check` list files needing formatting without writing; exit 1 if any differ,
-  0 if all are formatted (cannot be combined with `--watch` or `--output`)
-- `--help` show usage; `--version` show the package version
-
-Directory searches include `.ts`, `.tsx`, `.mts`, and `.cts` files by default,
-but exclude `.d.ts`, `.d.mts`, `.d.cts`, and non-source files. Register
-`jsExtractor` to also process `.js`, `.jsx`, `.mjs`, and `.cjs` files. Other
-registered extractors, such as the Vue adapter, participate in directory scans
-too. Explicit paths to files without a matching extractor are skipped. Import
-blocks containing comments are left as-is so comments cannot be detached from
-their imports; header comments before the first import are preserved. The CLI
-also supports aliases, grouped short flags, `--option=value`, and `--` for paths
-starting with a dash.
-
-## Config
-
-Create a `primp.config.ts` with a default-exported object. Primp searches the
-current working directory and its ancestors for `primp.config.ts`,
-`primp.config.mts`, `primp.config.js`, or `primp.config.mjs` (in that order).
-Use `-c` to select a config file explicitly. The runtime must be able to import
-TypeScript modules (Deno 2+ or Node 22.18+). The optional `defineConfig` helper
-provides type checking and editor completion:
+Create a `primp.config.ts` to customize the rules:
 
 ```ts
 import { defineConfig } from "jsr:@primp/primp";
@@ -117,250 +107,65 @@ export default defineConfig({
 });
 ```
 
-Plain `export default { ... }` works too. See the
-[full example](./examples/configs/primp.config.ts).
-
-Built-ins are split across `/rules/imports`, `/rules/elements`, and
-`/rules/separators`. Each entry point exports its rules individually; you can
-also use `import * as compareImports from "jsr:@primp/primp/rules/imports"` to
-access them through a namespace. The package root exports `defineConfig`,
-`inverse`, and the sorting and formatting APIs. In a Node project installed
-through the JSR npm bridge, use `"@primp/primp/rules/imports"` (and the
-corresponding other subpaths). In this repository, the Deno workspace resolves
-`@primp/*` imports to local packages, including in `examples/`. Omitted fields
-use these defaults:
-
-```ts
-import { inverse, tsExtractor } from "jsr:@primp/primp";
-import { elementName, specifierName } from "jsr:@primp/primp/rules/elements";
-import {
-  declarationText,
-  nodePrefix,
-  packageSource,
-  parentPath,
-  sideEffect,
-  sourcePath,
-  typeOnly,
-} from "jsr:@primp/primp/rules/imports";
-import * as separators from "jsr:@primp/primp/rules/separators";
-
-export default {
-  extractors: [tsExtractor],
-  sortImports: [
-    sideEffect,
-    nodePrefix,
-    packageSource,
-    parentPath,
-    inverse(typeOnly),
-    sourcePath,
-    declarationText,
-  ],
-  sortImportElements: [specifierName, elementName],
-  separateBy: [
-    separators.sideEffect,
-    separators.nodePrefix,
-    separators.packageSource,
-    separators.typeOnly,
-  ],
-  formatting: {
-    indent: 2,
-    bracketIndent: 1,
-    maxColumns: 80,
-    quoteStyle: "double",
-    trailingComma: true,
-    breakFrom: false,
-  },
-};
-```
-
-By default, side-effect imports come first, followed by `node:` built-ins, other
-packages, parent paths (`../`), and local paths (`./`). Within each source
-group, value imports precede declaration-level `import type`; imports then sort
-by full source path and declaration text. Blank lines separate side effects,
-built-ins, packages, relative imports, and declaration-level types; parent and
-local paths stay together. Named specifiers sort by imported name
-(case-insensitive), then by local binding name when the imported names compare
-equally. Declaration tie-breakers make import order independent of input order
-whenever the rendered declarations differ. Sorting side-effect imports can
-change execution order; keep such imports in a commented block if their relative
-execution order matters. `deno fmt` preserves the declaration order and blank
-lines. To opt in to the old named-specifier grouping and formatting:
-
-```ts
-import { defineConfig } from "jsr:@primp/primp";
-import {
-  elementName,
-  lowercase,
-  nameSuffix,
-} from "jsr:@primp/primp/rules/elements";
-
-export default defineConfig({
-  sortImportElements: [
-    lowercase,
-    nameSuffix,
-    elementName,
-  ],
-  formatting: {
-    bracketIndent: 0,
-    trailingComma: false,
-    breakFrom: true,
-  },
-});
-```
-
-Sorting rules run left to right until the first nonzero comparison. Wrap any
-comparator with `inverse(rule)` to reverse it, including custom comparators and
-named-element rules. Import comparators include `sideEffect`, `packageSource`,
-`namespaceImport`, `defaultImport`, `uppercaseDefault`, `sourceName`,
-`pathDepth`, `directoryName`, `parentPath`, `sourcePath`, `declarationText`,
-`typeOnly`, and `nodePrefix` (`node:` imports first). Named-element rules
-include `lowercase`, `elementName`, `nameSuffix`, and `specifierName`. The
-`separateBy` option inserts a blank line when any listed predicate is true;
-`separators.nodePrefix` separates `node:` imports from other imports. Combine
-separator predicates with `and(...rules)`, `or(...rules)`, `xor(left, right)`,
-and `not(rule)` from the main entry point. `and` and `or` accept any number of
-rules (including zero: `and()` always matches and `or()` never matches). For
-example, `separateBy: [and(separators.sideEffect, separators.packageSource)]`
-inserts a blank line only when both rules match the same boundary.
-
-`bracketIndent` controls spaces inside single-line named imports;
-`trailingComma` controls multiline named imports; `breakFrom` opts into wrapping
-an overflowing `from` clause like the old formatter. These options can differ
-from `deno fmt`, so configure both tools if you use them on the same files.
-
-Custom functions can be written inline or imported relative to the config file
-and placed directly in the appropriate array:
-
-```ts
-import { defineConfig, inverse } from "jsr:@primp/primp";
-import { sourceName } from "jsr:@primp/primp/rules/imports";
-import myRule from "./rules/my-rule.ts";
-
-export default defineConfig({
-  sortImports: [inverse(myRule), sourceName],
-});
-```
-
-Custom rules importing primp should use its JSR package specifier (or the Node
-JSR bridge). An empty rule array disables that sorting or grouping stage.
-
-## JavaScript files
-
-To format JavaScript files, add the optional built-in extractor to your config:
-
-```ts
-import { defineConfig, jsExtractor } from "jsr:@primp/primp";
-
-export default defineConfig({ extractors: [jsExtractor] });
-```
-
-## Vue single-file components
-
-Vue support is an additional package: install it only when you format Vue
-components. `@primp/primp` does not depend on Vue or its compiler.
-
-```sh
-deno add jsr:@primp/vue
-# Or for Node.js through JSR's npm bridge:
-npx jsr add --npm @primp/vue
-```
+For library use, pass source text to `formatImports`:
 
 ```ts
 import { formatImports } from "jsr:@primp/primp";
-import { vueExtractor } from "jsr:@primp/vue";
 
-const formatted = formatImports(
-  `
-<script setup lang="ts">
-import z from "z";
-import a from "a";
-</script>
-`,
-  { extractors: [vueExtractor] },
-  "component.vue",
-);
+const formatted = formatImports('import { b, a } from "pkg";\n');
+// import { a, b } from "pkg";
 ```
 
-`@primp/vue` only extracts script slices; `@primp/primp` sorts and formats their
-imports and reinserts them into the original component. Each extractor declares
-its own `extensions` matcher (an extension string, filename regex, or filename
-predicate) and an `extract(source, filename)` function. The first matching
-extractor in the config list is used. The same `extractors` config can be used
-in `primp.config.ts` so the CLI discovers `.vue` files in directories. See the
-[Vue config example](./examples/vue/primp.config.ts). The built-in `tsExtractor`
-handles TypeScript as a single whole-file slice; `jsExtractor` does the same for
-JavaScript when configured. Custom extractors are checked before the built-in
-TypeScript extractor, so they can override it for matching files. Templates,
-styles, and other parts of the SFC remain intact. External scripts and
-unsupported script languages are skipped.
+In Node projects, use `"@primp/primp"` and its corresponding subpaths instead of
+`"jsr:@primp/primp"`. See the [core package guide](./packages/primp/README.md)
+for CLI flags, configuration, and migration from `pretty-ts-imports`, or the
+[Vue guide](./packages/vue/README.md) to add SFC support.
 
-## Programmatic usage
+## Examples
 
-Import the building blocks from the package root if you want to handle imports
-in your own code:
+- [Configuration](./examples/configs/primp.config.ts): Built-in rules, a custom
+  comparator, and the original formatting style.
+- [Custom comparators](./examples/compare_functions/): Rules for import
+  declarations.
+- [Vue configuration](./examples/vue/primp.config.ts): Register the Vue adapter.
 
-```ts
-import {
-  ConfigHandler,
-  ImportIntegrator,
-  ImportSeparator,
-  ImportSorter,
-  parseImports,
-} from "jsr:@primp/primp";
+The workspace resolves `@primp/*` imports in these examples to the local
+packages. After publication, API documentation is available on JSR for
+[@primp/primp](https://jsr.io/@primp/primp/doc) and
+[@primp/vue](https://jsr.io/@primp/vue/doc).
 
-const config = new ConfigHandler();
-const { sourceFile, imports } = parseImports(
-  'import b from "b";\nimport a from "a";\n',
-);
-const sorted = new ImportSorter(config.sortImports, config.sortImportElements)
-  .sort(imports);
-const grouped = new ImportSeparator(config.separateBy).insertSeparator(sorted);
-console.log(
-  new ImportIntegrator(config.formatting).integrate(sourceFile, grouped),
-);
+## Contributing
+
+Issues and pull requests are welcome. The repository is a Deno workspace with
+the core formatter in `packages/primp`, the Vue adapter in `packages/vue`, and
+shared tests in `tests`.
+
+Use the local CLI while developing:
+
+```sh
+deno task cli src -r
 ```
 
-For API docs after publication, see [JSR](https://jsr.io/@primp/primp/doc).
-Locally, run `deno doc packages/primp/mod.ts` (or pass another package entry
-point) to inspect the API.
+## Testing
 
-## Migrating from the npm package
+With Deno 2+ and Node.js 22.18+ installed, run:
 
-The original `pretty-ts-imports` and `@cptpiepmatz/pretty-ts-imports` npm
-packages used CommonJS bundles and `primp` / `pretty-ts-imports` executables.
-Use the JSR package and its `/cli` entry point for scripts; programmatic imports
-are now ESM named exports from the package root. `Import`, `ImportSorter`,
-`ImportSeparator`, `ImportIntegrator`, `FileManager`, `ConfigHandler`,
-comparator types remain available from the package root; built-in functions are
-available from the three `/rules/*` category entry points. Types use TypeScript
-`import type`. `parseImports` is new. The old `OnDemandTranspiler` and CommonJS
-custom-rule loader are gone: convert custom rules to ESM default exports. `-t` /
-`--tsconfig` have been removed; drop those flags from scripts. The first
-`FileManager` constructor argument (the tsconfig path) has also been removed:
-use `new FileManager(filePaths)`. Syntactic parsing no longer reads a tsconfig.
-`getFiles` filters non-TypeScript files, and `--watch` watches selected files.
-Node versions below 22.18 are unsupported. To restore the old ordering and
-formatting, use the config above.
+```sh
+deno install
+deno task check
+deno task lint
+deno task test
+```
 
-Existing JSON, JSONC, JSON5, YAML, and TOML configs must be converted to a
-default-exported `.config.ts` object. Import custom functions instead of using
-`require`; replace rule names in the arrays with function references from the
-built-in exports or your imports. Replace `"!ruleName"` with `inverse(rule)`.
+`deno task test` runs both the Deno suite and Node smoke tests. You can run them
+separately with `deno task test:deno` and `deno task test:node`. Use
+`deno task fmt` to format the workspace and its imports, and `deno fmt --check`
+to check source formatting.
 
-## Development
+To inspect the API locally, run `deno doc packages/primp/mod.ts` or
+`deno doc packages/vue/mod.ts`. To validate both packages for publication, run
+`deno publish --dry-run` from the workspace root.
 
-The Deno workspace contains `packages/primp` and `packages/vue`; its root config
-resolves local `@primp/*` imports in examples and tests. Run `deno task test`,
-`deno task check`, `deno task lint`, and `deno task fmt`. For a local Node smoke
-test, run `deno install` then `deno task test:node` (Node.js 22.18+). Deno
-installs the npm dependencies from `deno.json` into `node_modules` for this
-test.
+## License
 
-After reviewing both packages and confirming JSR ownership, publish with
-`deno publish --dry-run` followed by `deno publish` from the workspace root.
-
-Before retiring npm, publish a manual final npm notice release with a migration
-pointer (or update the old README), then deprecate both npm names using
-`npm deprecate <package>@<version-range> "Moved to JSR: https://jsr.io/@primp/primp"`.
-Confirm ownership, namespace, and published version first; this repository does
-not publish or deprecate the npm packages automatically.
+**primp** is released under the [MIT License](./LICENSE).
