@@ -14,10 +14,6 @@ jobs:
       - run: deno task check
       - run: deno task lint
       - run: deno fmt --check
-        if: runner.os != 'Windows'
-      # Deno's YAML and SVG formatters still compare CRLF checkouts as changed.
-      - run: deno fmt --check --ignore=icon/primp.svg,.github/workflows/test.yml
-        if: runner.os == 'Windows'
       - run: deno task test
       - run: deno publish --dry-run --allow-dirty
   node:

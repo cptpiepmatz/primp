@@ -12,7 +12,7 @@
   },
   "fmt": {
     "newLineKind": "auto",
-    "exclude": ["./icon/"]
+    "exclude": ["./icon/", "./.github/workflows/"]
   },
   "test": {
     "sanitizeOps": true,

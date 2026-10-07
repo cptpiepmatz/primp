@@ -118,9 +118,9 @@ export class ConfigHandler implements FullConfig {
     while (true) {
       for (const fileName of expectedFileNames) {
         const candidate = join(current, fileName);
-        if (statSync(candidate, { throwIfNoEntry: false })?.isFile()) {
-          return candidate;
-        }
+        try {
+          if (statSync(candidate).isFile()) return candidate;
+        } catch { /* Ignore failed lookups. */ }
       }
 
       const parent = dirname(current);
