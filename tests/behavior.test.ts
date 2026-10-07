@@ -2,6 +2,7 @@ import {
   ConfigHandler,
   defineConfig,
   FileManager,
+  formatImports,
   ImportIntegrator,
   ImportSeparator,
   ImportSorter,
@@ -78,6 +79,9 @@ Deno.test("directory scans include JavaScript only with its extractor", async ()
     const original = 'import z from "z";\nimport a from "a";\n';
     Deno.writeTextFileSync(tsFile, original);
     for (const file of jsFiles) Deno.writeTextFileSync(file, original);
+    for (const name of ["types.d.ts", "types.d.mts", "types.d.cts"]) {
+      Deno.writeTextFileSync(join(dir, name), original);
+    }
     Deno.writeTextFileSync(join(nested, "ignore.txt"), original);
     expect(FileManager.getFiles(dir, true)).toEqual([tsFile]);
     const configPath = join(dir, "primp.config.ts");
@@ -167,6 +171,29 @@ Deno.test("type specifiers, aliases, attributes and import-only files remain val
       parsed.imports.reverse(),
     ),
   ).toBe(commented);
+});
+
+Deno.test("string-literal import names remain quoted and parseable", () => {
+  const input = 'import { "foo-bar" as local, "" as blank } from "pkg";\n';
+  for (const quoteStyle of ["double", "single"] as const) {
+    const output = formatImports(input, { formatting: { quoteStyle } });
+    const quote = quoteStyle === "single" ? "'" : '"';
+    expect(output).toContain(`${quote}foo-bar${quote} as local`);
+    expect(output).toContain(`${quote}${quote} as blank`);
+    expect(parseImports(output).imports).toHaveLength(1);
+  }
+});
+
+Deno.test("escaped module specifiers and attribute keys remain parseable", () => {
+  const input = 'import x from "a\\nb" with { "line\\tkey": "value" };\n';
+  for (const quoteStyle of ["double", "single"] as const) {
+    const output = formatImports(input, { formatting: { quoteStyle } });
+    expect(output).toContain("a\\nb");
+    expect(output).toContain("line\\tkey");
+    const imported = parseImports(output).imports[0];
+    expect(imported.source.name).toBe("a\nb");
+    expect(imported.attributes.with?.[0].key.name).toBe("line\tkey");
+  }
 });
 
 Deno.test("declaration phase modifiers parse and render independently of inline type", () => {

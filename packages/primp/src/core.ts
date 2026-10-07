@@ -1,5 +1,4 @@
 import ts from "typescript";
-
 import type { SourceFile } from "typescript";
 
 import type { ImportElementCompareFunction } from "./rules.ts";
@@ -56,6 +55,9 @@ export interface ImportElement {
 
   /** Imported name before `as`, or `*` for a namespace import. */
   originalName?: string;
+
+  /** Whether the imported name uses a string literal (e.g. `"foo-bar" as foo`). */
+  originalNameIsStringLiteral?: boolean;
 
   /** Whether this is the default binding, held separately in {@link Import.defaultElement}. */
   isDefault: boolean;
@@ -117,15 +119,32 @@ export const defaultFormattingOptions: Required<FormattingOptions> = {
   breakFrom: false,
 };
 
+function quoteString(value: string, quote: string): string {
+  // Control characters must be escaped to keep decoded TypeScript string values valid.
+  // deno-lint-ignore no-control-regex
+  const escaped = value.replace(/[\\\x00-\x1f\u2028\u2029'"]/g, (character) => {
+    if (character === "\\") return "\\\\";
+    if (character === quote) return `\\${character}`;
+    if (character === "\n") return "\\n";
+    if (character === "\r") return "\\r";
+    if (character === "\t") return "\\t";
+    if (character === "'" || character === '"') return character;
+    return `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`;
+  });
+  return `${quote}${escaped}${quote}`;
+}
+
 function element(
   name: string,
   originalName?: string,
   isDefault = false,
   isTypeOnly = false,
+  originalNameIsStringLiteral = false,
 ): ImportElement {
   return {
     name,
     originalName,
+    originalNameIsStringLiteral,
     isDefault,
     isWildcard: originalName === "*",
     isRenamed: originalName !== undefined,
@@ -210,6 +229,8 @@ export class Import {
           specifier.propertyName?.text,
           false,
           specifier.isTypeOnly,
+          specifier.propertyName !== undefined &&
+            ts.isStringLiteral(specifier.propertyName),
         ));
       }
     } else if (bindings && ts.isNamespaceImport(bindings)) {
@@ -264,7 +285,11 @@ export class Import {
     if (this.isNamed) {
       for (const imported of this.elements) {
         let name = imported.isTypeOnly ? "type " : "";
-        if (imported.originalName) name += `${imported.originalName} as `;
+        if (imported.originalName !== undefined) {
+          name += (imported.originalNameIsStringLiteral
+            ? quoteString(imported.originalName, quote)
+            : imported.originalName) + " as ";
+        }
         specifiers.push(name + imported.name);
       }
       if (specifiers.length) {
@@ -281,11 +306,7 @@ export class Import {
     if (this.phaseModifier) output += `${this.phaseModifier} `;
     output += names.join(", ");
     if (names.length) output += " from ";
-    const escapedSource = this.source.name.replaceAll("\\", "\\\\").replaceAll(
-      quote,
-      `\\${quote}`,
-    );
-    output += `${quote}${escapedSource}${quote}`;
+    output += quoteString(this.source.name, quote);
     const attributeKind = this.attributes.with !== undefined
       ? "with"
       : this.attributes.assert !== undefined
@@ -296,9 +317,7 @@ export class Import {
       const rendered = entries.map(({ key, value }) => {
         const name = key.type === "identifier"
           ? key.name
-          : `${quote}${
-            key.name.replaceAll("\\", "\\\\").replaceAll(quote, `\\${quote}`)
-          }${quote}`;
+          : quoteString(key.name, quote);
         return `${name}: ${value}`;
       });
       output += ` ${attributeKind} {${

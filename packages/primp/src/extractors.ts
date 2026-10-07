@@ -49,7 +49,7 @@ export const extractSource: Extractor["extract"] = (source) => [{
 
 /** Built-in adapter for TypeScript source files. */
 export const tsExtractor: Extractor = {
-  extensions: /^(?!.*\.d\.ts$).*\.(?:[cm]?ts|tsx)$/i,
+  extensions: /^(?!.*\.d\.[cm]?ts$).*\.(?:[cm]?ts|tsx)$/i,
   extract: extractSource,
 };
 

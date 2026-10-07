@@ -23,6 +23,7 @@ import {
   parseImports,
 } from "../packages/primp/mod.ts";
 import { sourceName } from "../packages/primp/rules/imports.ts";
+
 import * as api from "../packages/primp/mod.ts";
 
 test("Node imports the ESM entry point and formats imports", () => {
@@ -52,6 +53,13 @@ test("Node gets Deno-compatible defaults", () => {
     ),
     'import pkg from "pkg";\n\nimport { a, b } from "./b";\n\nimport "side";\n',
   );
+});
+
+test("Node preserves quoted import names and escaped module specifiers", () => {
+  const input = 'import { "foo-bar" as local } from "a\\nb";\n';
+  const output = api.formatImports(input);
+  assert.equal(output, input);
+  assert.equal(parseImports(output).imports.length, 1);
 });
 
 test("Node loads a TypeScript config", async () => {
