@@ -204,7 +204,13 @@ named-element rules. Import comparators include `sideEffect`, `packageSource`,
 first). Named-element rules include `lowercase`, `elementName`, `nameSuffix`,
 and `specifierName`. The `separateBy` option inserts a blank line when any
 listed predicate is true; `separators.nodePrefix` separates `node:` imports from
-other imports. To opt in while retaining the other default rules, configure:
+other imports. Combine separator predicates with `and(...rules)`,
+`or(...rules)`, `xor(left, right)`, and `not(rule)` from the main entry point.
+`and` and `or` accept any number of rules (including zero: `and()` always
+matches and `or()` never matches). For example,
+`separateBy: [and(separators.sideEffect, separators.packageSource)]` inserts a
+blank line only when both rules match the same boundary. To opt in to `node:`
+grouping while retaining the other default rules, configure:
 
 ```ts
 import { defineConfig, inverse } from "jsr:@primp/primp";
