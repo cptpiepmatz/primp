@@ -4,6 +4,7 @@ import {
   jsExtractor,
   tsExtractor,
 } from "@primp/primp";
+
 import * as importComparators from "@primp/primp/rules/imports";
 import * as separators from "@primp/primp/rules/separators";
 

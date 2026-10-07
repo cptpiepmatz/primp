@@ -11,6 +11,7 @@ import {
   sideEffect,
   sourceName,
 } from "@primp/primp/rules/imports";
+
 import * as separators from "@primp/primp/rules/separators";
 
 import dotJS from "../compare_functions/imports/dotJS.ts";

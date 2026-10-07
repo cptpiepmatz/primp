@@ -89,22 +89,23 @@ Use flags to control how primp handles your files:
 - `--help` show usage; `--version` show the package version
 
 Directory searches include `.ts`, `.tsx`, `.mts`, and `.cts` files by default,
-but exclude `.d.ts` and non-source files. Register `jsExtractor` to also process
-`.js`, `.jsx`, `.mjs`, and `.cjs` files. Other registered extractors, such as
-the Vue adapter, participate in directory scans too. Explicit paths to files
-without a matching extractor are skipped. Import blocks containing comments are
-left as-is so comments cannot be detached from their imports; header comments
-before the first import are preserved. The CLI also supports aliases, grouped
-short flags, `--option=value`, and `--` for paths starting with a dash.
+but exclude `.d.ts`, `.d.mts`, `.d.cts`, and non-source files. Register
+`jsExtractor` to also process `.js`, `.jsx`, `.mjs`, and `.cjs` files. Other
+registered extractors, such as the Vue adapter, participate in directory scans
+too. Explicit paths to files without a matching extractor are skipped. Import
+blocks containing comments are left as-is so comments cannot be detached from
+their imports; header comments before the first import are preserved. The CLI
+also supports aliases, grouped short flags, `--option=value`, and `--` for paths
+starting with a dash.
 
 ## Config
 
 Create a `primp.config.ts` with a default-exported object. Primp searches the
 current working directory and its ancestors for `primp.config.ts`,
-`pretty-ts-imports.config.ts`, or `prettytsimports.config.ts` (in that order).
-Use `-c` to select any `.ts` config file explicitly. The runtime must be able to
-import TypeScript modules (Deno 2+ or Node 22.18+). The optional `defineConfig`
-helper provides type checking and editor completion:
+`primp.config.mts`, `primp.config.js`, or `primp.config.mjs` (in that order).
+Use `-c` to select a config file explicitly. The runtime must be able to import
+TypeScript modules (Deno 2+ or Node 22.18+). The optional `defineConfig` helper
+provides type checking and editor completion:
 
 ```ts
 import { defineConfig } from "jsr:@primp/primp";
@@ -120,14 +121,14 @@ Plain `export default { ... }` works too. See the
 [full example](./examples/configs/primp.config.ts).
 
 Built-ins are split across `/rules/imports`, `/rules/elements`, and
-`/rules/separators`. Each category exports its rules individually and as a group
-(`compareImports`, `compareImportElements`, or `separateBy`). For example, you
-can write `const { sideEffect, sourceName } = compareImports` if you prefer
-destructuring. The package root exports `defineConfig`, `inverse`, and the
-sorting and formatting APIs. In a Node project installed through the JSR npm
-bridge, use `"@primp/primp/rules/imports"` (and the corresponding other
-subpaths). In this repository, the Deno workspace resolves `@primp/*` imports to
-local packages, including in `examples/`. Omitted fields use these defaults:
+`/rules/separators`. Each entry point exports its rules individually; you can
+also use `import * as compareImports from "jsr:@primp/primp/rules/imports"` to
+access them through a namespace. The package root exports `defineConfig`,
+`inverse`, and the sorting and formatting APIs. In a Node project installed
+through the JSR npm bridge, use `"@primp/primp/rules/imports"` (and the
+corresponding other subpaths). In this repository, the Deno workspace resolves
+`@primp/*` imports to local packages, including in `examples/`. Omitted fields
+use these defaults:
 
 ```ts
 import { inverse, tsExtractor } from "jsr:@primp/primp";
@@ -332,11 +333,9 @@ console.log(
 );
 ```
 
-For API docs after publication, see [JSR](https://jsr.io/@primp/primp/doc);
-locally, run `deno task docs` to generate documentation for each entry point:
-[main package](docs/index.html), [Vue](docs/vue/index.html), and the built-in
-rules ([imports](docs/imports/index.html), [elements](docs/elements/index.html),
-[separators](docs/separators/index.html)).
+For API docs after publication, see [JSR](https://jsr.io/@primp/primp/doc).
+Locally, run `deno doc packages/primp/mod.ts` (or pass another package entry
+point) to inspect the API.
 
 ## Migrating from the npm package
 
