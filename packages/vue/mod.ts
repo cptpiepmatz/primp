@@ -5,6 +5,7 @@
  */
 
 import { parse } from "@vue/compiler-sfc";
+
 import type { Extractor, SourceSlice } from "@primp/primp";
 
 /**

@@ -1,4 +1,5 @@
 import ts from "typescript";
+
 import type { SourceFile } from "typescript";
 
 import type { ImportElementCompareFunction } from "./rules.ts";

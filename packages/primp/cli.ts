@@ -15,8 +15,8 @@ import yargs from "yargs";
 
 import metadata from "./deno.json" with { type: "json" };
 import { ConfigHandler } from "./src/configuration.ts";
-import { FileManager } from "./src/files.ts";
 import { matchesExtractor } from "./src/extractors.ts";
+import { FileManager } from "./src/files.ts";
 import { formatImports } from "./src/format.ts";
 
 /** Parsed command-line options for the JSR `/cli` entry point. */
