@@ -4,7 +4,7 @@
 
 # @primp/vue
 
-**Format imports inside Vue single-file components with primp.**
+**Pretty imports, your rules.**
 
 <br>
 

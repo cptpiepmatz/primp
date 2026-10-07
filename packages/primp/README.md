@@ -4,7 +4,7 @@
 
 # @primp/primp
 
-**Sort, group, and format TypeScript imports with rules of your own.**
+**Pretty imports, your rules.**
 
 <br>
 

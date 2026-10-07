@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">primp</h1>
 <p align="center">
-  <b>Sort your TypeScript imports with rules of your own.</b>
+  <b>Pretty imports, your rules.</b>
 </p>
 
 <br>
