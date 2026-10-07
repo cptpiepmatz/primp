@@ -1,7 +1,6 @@
 import { ConfigHandler, inverse } from "@primp/primp";
-import { expect as stdExpect } from "@std/expect";
-
 import * as compareImportElements from "@primp/primp/rules/elements";
+import { expect as stdExpect } from "@std/expect";
 
 import { expect, ts } from "./mod.ts";
 
@@ -104,6 +103,9 @@ Deno.test("default specifier rule sorts Deno-style names and retains multiline c
   stdExpect(config.sortImportElements[0]).toBe(
     compareImportElements.specifierName,
   );
+  stdExpect(config.sortImportElements[1]).toBe(
+    compareImportElements.elementName,
+  );
 
   const input = ts`
     import {z as a, a as z, type Zebra, type Beta, b, B, A} from 'pkg';
@@ -124,10 +126,21 @@ Deno.test("default specifier rule sorts Deno-style names and retains multiline c
       hotel,
       india,
     } from "phonetic";
-    import { a as z, A, b, B, type Beta, z as a, type Zebra } from "pkg";
+    import { A, a as z, b, B, type Beta, z as a, type Zebra } from "pkg";
     import {} from "x";
   `;
   expect(input).viaRules(config).toBe(expected);
+});
+
+Deno.test("default specifiers use the local name for imported-name ties", () => {
+  const input = ts`
+    import { foo as z, A, foo as a, a } from "pkg";
+  `;
+  const expected = ts`
+    import { a, A, foo as a, foo as z } from "pkg";
+  `;
+
+  expect(input).viaRules(new ConfigHandler()).toBe(expected);
 });
 
 Deno.test("inverse reverses the named specifier comparator", () => {

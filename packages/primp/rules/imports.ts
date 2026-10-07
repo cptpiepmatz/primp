@@ -257,6 +257,58 @@ export const sourceName: ImportCompareFunction = function (a, b) {
 };
 
 /**
+ * Compares full module specifiers alphabetically, including relative paths.
+ * Unlike `sourceName`, this also orders `./` and `../` imports; use
+ * `packageSource` and `parentPath` first to put those categories in a
+ * particular order. If locale comparison considers two different paths equal,
+ * their Unicode code points break the tie.
+ *
+ * <i>This ignores import bindings: equal source paths compare as equal.</i>
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import deep from "./a/deep";
+ * import other from "./b";
+ * import shallow from "./a";
+ *
+ * // sorted
+ * import shallow from "./a";
+ * import deep from "./a/deep";
+ * import other from "./b";
+ * ```
+ */
+export const sourcePath: ImportCompareFunction = function (a, b) {
+  const left = a.source.name;
+  const right = b.source.name;
+  return left.localeCompare(right) ||
+    (left < right ? -1 : left > right ? 1 : 0);
+};
+
+/**
+ * Compares rendered import declarations by Unicode code point. Use this last
+ * to decide the order of imports from the same source with different bindings
+ * or attributes. Named elements should already be sorted before this runs;
+ * declarations that render identically compare as equal.
+ *
+ * @example
+ * ```ts
+ * // unsorted
+ * import { z } from "pkg";
+ * import { a } from "pkg";
+ *
+ * // sorted
+ * import { a } from "pkg";
+ * import { z } from "pkg";
+ * ```
+ */
+export const declarationText: ImportCompareFunction = function (a, b) {
+  const left = a.toString();
+  const right = b.toString();
+  return left < right ? -1 : left > right ? 1 : 0;
+};
+
+/**
  * Compares two imports if they only import types.
  *
  * @example

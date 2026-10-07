@@ -1,12 +1,16 @@
-import { ConfigHandler, defaultConfig, inverse } from "@primp/primp";
-import { expect as stdExpect } from "@std/expect";
-
+import {
+  ConfigHandler,
+  defaultConfig,
+  formatImports,
+  inverse,
+} from "@primp/primp";
 import * as compareImports from "@primp/primp/rules/imports";
 import * as separators from "@primp/primp/rules/separators";
-
-import { expect, ts } from "./mod.ts";
+import { expect as stdExpect } from "@std/expect";
 
 import type { Import } from "@primp/primp";
+
+import { expect, ts } from "./mod.ts";
 
 Deno.test("defaultImport puts imports with default bindings first", () => {
   const sortImports = [compareImports.defaultImport];
@@ -215,6 +219,37 @@ Deno.test("sourceName sorts packages and leaves relative imports in place", () =
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
+Deno.test("sourcePath sorts full paths including relative imports", () => {
+  const input = ts`
+    import deep from "./a/deep";
+    import other from "./b";
+    import shallow from "./a";
+  `;
+  const expected = ts`
+    import shallow from "./a";
+    import deep from "./a/deep";
+    import other from "./b";
+  `;
+
+  expect(input).viaRules({ sortImports: [compareImports.sourcePath] }).toBe(
+    expected,
+  );
+});
+
+Deno.test("declarationText resolves imports from the same source", () => {
+  const input = ts`
+    import { z } from "pkg";
+    import { a } from "pkg";
+  `;
+  const expected = ts`
+    import { a } from "pkg";
+    import { z } from "pkg";
+  `;
+
+  expect(input).viaRules({ sortImports: [compareImports.declarationText] })
+    .toBe(expected);
+});
+
 Deno.test("packageSource puts packages before relative imports", () => {
   const sortImports = [compareImports.packageSource];
 
@@ -293,25 +328,25 @@ Deno.test("default declaration rules sort and group imports", () => {
   `;
 
   const expected = ts`
-    import { a, Alpha, Zoo } from "beta";
+    import "polyfill";
 
     import * as ns from "alpha";
+    import { a, Alpha, Zoo } from "beta";
 
     import local from "./z";
-
-    import "polyfill";
   `;
 
   expect(input).viaRules(config).toBe(expected);
 });
 
-Deno.test("default rules do not separate type-only imports", () => {
+Deno.test("default rules separate type-only imports after values", () => {
   const input = ts`
     import value from "b";
     import type Type from "a";
   `;
   const expected = ts`
     import value from "b";
+
     import type Type from "a";
   `;
   expect(input).viaRules(new ConfigHandler()).toBe(expected);
@@ -391,19 +426,16 @@ Deno.test("inverse reverses a custom import sorter", () => {
   expect(input).viaRules({ sortImports }).toBe(expected);
 });
 
-Deno.test("node: import rules are opt-in", () => {
+Deno.test("node: imports are grouped by default", () => {
   const config = new ConfigHandler();
-  stdExpect(config.sortImports).not.toContain(compareImports.nodePrefix);
-  stdExpect(config.separateBy).not.toContain(separators.nodePrefix);
+  stdExpect(config.sortImports).toContain(compareImports.nodePrefix);
+  stdExpect(config.separateBy).toContain(separators.nodePrefix);
 });
 
-Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
-  const config = new ConfigHandler();
-  const sortImports = [compareImports.nodePrefix, ...config.sortImports];
-  const separateBy = [separators.nodePrefix, ...config.separateBy];
-
+Deno.test("default source groups prioritize built-ins, packages, parents, locals", () => {
   const input = ts`
     import local from "./local";
+    import parent from "../parent";
     import pkg from "pkg";
     import path from "node:path";
     import fs from "node:fs";
@@ -415,12 +447,29 @@ Deno.test("opt-in node: rule prioritizes and groups built-in imports", () => {
 
     import pkg from "pkg";
 
+    import parent from "../parent";
     import local from "./local";
   `;
 
-  expect(input).viaRules({
-    sortImports,
-    sortImportElements: config.sortImportElements,
-    separateBy,
-  }).toBe(expected);
+  expect(input).viaRules(new ConfigHandler()).toBe(expected);
+});
+
+Deno.test("default ordering converges across permutations and is idempotent", () => {
+  const declarations = [
+    'import type { T } from "pkg";',
+    'import { z as a } from "pkg";',
+    'import { z as b } from "pkg";',
+    'import * as ns from "pkg";',
+    'import parent from "../parent";',
+    'import deep from "./a/deep";',
+    'import shallow from "./a";',
+    'import other from "./a-b";',
+    'import "setup";',
+    'import fs from "node:fs";',
+  ];
+  const first = formatImports(declarations.join("\n") + "\n");
+  const reversed = formatImports(declarations.toReversed().join("\n") + "\n");
+  stdExpect(reversed).toBe(first);
+  stdExpect(formatImports(first)).toBe(first);
+  stdExpect(first.indexOf('"./a"')).toBeLessThan(first.indexOf('"./a/deep"'));
 });

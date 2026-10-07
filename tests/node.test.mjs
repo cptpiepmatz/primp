@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
+import * as api from "../packages/primp/mod.ts";
 import {
   ConfigHandler,
   ImportIntegrator,
@@ -23,8 +24,6 @@ import {
   parseImports,
 } from "../packages/primp/mod.ts";
 import { sourceName } from "../packages/primp/rules/imports.ts";
-
-import * as api from "../packages/primp/mod.ts";
 
 test("Node imports the ESM entry point and formats imports", () => {
   assert.equal("compareImports" in api, false);
@@ -51,7 +50,7 @@ test("Node gets Deno-compatible defaults", () => {
       sourceFile,
       new ImportSeparator(config.separateBy).insertSeparator(imports),
     ),
-    'import pkg from "pkg";\n\nimport { a, b } from "./b";\n\nimport "side";\n',
+    'import "side";\n\nimport pkg from "pkg";\n\nimport { a, b } from "./b";\n',
   );
 });
 

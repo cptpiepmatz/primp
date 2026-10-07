@@ -2,20 +2,20 @@ import { statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { defaultFormattingOptions } from "./core.ts";
-import { tsExtractor } from "./extractors.ts";
-import { specifierName } from "../rules/elements.ts";
+import { elementName, specifierName } from "../rules/elements.ts";
 import {
-  directoryName,
-  namespaceImport,
+  declarationText,
+  nodePrefix,
   packageSource,
+  parentPath,
   sideEffect,
-  sourceName,
+  sourcePath,
   typeOnly,
 } from "../rules/imports.ts";
-
-import * as ops from "./rules.ts";
 import * as separators from "../rules/separators.ts";
+import { defaultFormattingOptions } from "./core.ts";
+import { tsExtractor } from "./extractors.ts";
+import * as ops from "./rules.ts";
 
 import type { FormattingOptions } from "./core.ts";
 import type { Extractor } from "./extractors.ts";
@@ -53,23 +53,24 @@ export type FullConfig = Required<Config> & {
   formatting: Required<FormattingOptions>;
 };
 
-/** Default import ordering, grouping, and Deno-compatible formatting. */
+/** Side effects, then built-ins, packages, parents, locals; values before types. */
 export const defaultConfig: FullConfig = {
   extractors: [tsExtractor],
   sortImports: [
-    ops.inverse(sideEffect),
-    ops.inverse(typeOnly),
+    sideEffect,
+    nodePrefix,
     packageSource,
-    ops.inverse(namespaceImport),
-    directoryName,
-    sourceName,
+    parentPath,
+    ops.inverse(typeOnly),
+    sourcePath,
+    declarationText,
   ],
-  sortImportElements: [specifierName],
+  sortImportElements: [specifierName, elementName],
   separateBy: [
     separators.sideEffect,
-    separators.typeOnly,
+    separators.nodePrefix,
     separators.packageSource,
-    separators.namespace,
+    separators.typeOnly,
   ],
   formatting: { ...defaultFormattingOptions },
 };

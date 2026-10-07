@@ -29,7 +29,15 @@ export { extractSource, jsExtractor, tsExtractor } from "./src/extractors.ts";
 export type { Extractor, SourceSlice } from "./src/extractors.ts";
 export { formatImports } from "./src/format.ts";
 export { FileManager } from "./src/files.ts";
-export { ImportSeparator, ImportSorter, inverse } from "./src/rules.ts";
+export {
+  and,
+  ImportSeparator,
+  ImportSorter,
+  inverse,
+  not,
+  or,
+  xor,
+} from "./src/rules.ts";
 export type {
   ImportCompareFunction,
   ImportElementCompareFunction,

@@ -19,9 +19,9 @@
 </div>
 
 **primp** formats the leading block of TypeScript imports using the TypeScript
-parser. By default, it sorts and groups import declarations as in the original
-primp, while formatting named specifiers compatibly with `deno fmt`. The rules
-are configurable. The rest of the file stays intact.
+parser. By default, it sorts and groups imports by side effects, source kind,
+and path, while formatting named specifiers compatibly with `deno fmt`. The
+rules are configurable. The rest of the file stays intact.
 
 ## Installation
 
@@ -132,30 +132,35 @@ use these defaults:
 
 ```ts
 import { inverse, tsExtractor } from "jsr:@primp/primp";
-import { specifierName } from "jsr:@primp/primp/rules/elements";
+import { elementName, specifierName } from "jsr:@primp/primp/rules/elements";
 import {
-  directoryName,
-  namespaceImport,
+  declarationText,
+  nodePrefix,
   packageSource,
+  parentPath,
   sideEffect,
-  sourceName,
+  sourcePath,
+  typeOnly,
 } from "jsr:@primp/primp/rules/imports";
 import * as separators from "jsr:@primp/primp/rules/separators";
 
 export default {
   extractors: [tsExtractor],
   sortImports: [
-    inverse(sideEffect),
+    sideEffect,
+    nodePrefix,
     packageSource,
-    inverse(namespaceImport),
-    directoryName,
-    sourceName,
+    parentPath,
+    inverse(typeOnly),
+    sourcePath,
+    declarationText,
   ],
-  sortImportElements: [specifierName],
+  sortImportElements: [specifierName, elementName],
   separateBy: [
     separators.sideEffect,
+    separators.nodePrefix,
     separators.packageSource,
-    separators.namespace,
+    separators.typeOnly,
   ],
   formatting: {
     indent: 2,
@@ -168,11 +173,18 @@ export default {
 };
 ```
 
-By default, primp sorts and groups import declarations as in the old version.
-`deno fmt` preserves that order and those blank lines. Named specifiers use
-Deno-style ordering (imported name, then local alias), with Deno-compatible
-spacing and multiline commas. To opt in to the old named-specifier grouping and
-formatting:
+By default, side-effect imports come first, followed by `node:` built-ins, other
+packages, parent paths (`../`), and local paths (`./`). Within each source
+group, value imports precede declaration-level `import type`; imports then sort
+by full source path and declaration text. Blank lines separate side effects,
+built-ins, packages, relative imports, and declaration-level types; parent and
+local paths stay together. Named specifiers sort by imported name
+(case-insensitive), then by local binding name when the imported names compare
+equally. Declaration tie-breakers make import order independent of input order
+whenever the rendered declarations differ. Sorting side-effect imports can
+change execution order; keep such imports in a commented block if their relative
+execution order matters. `deno fmt` preserves the declaration order and blank
+lines. To opt in to the old named-specifier grouping and formatting:
 
 ```ts
 import { defineConfig } from "jsr:@primp/primp";
@@ -200,47 +212,16 @@ Sorting rules run left to right until the first nonzero comparison. Wrap any
 comparator with `inverse(rule)` to reverse it, including custom comparators and
 named-element rules. Import comparators include `sideEffect`, `packageSource`,
 `namespaceImport`, `defaultImport`, `uppercaseDefault`, `sourceName`,
-`pathDepth`, `directoryName`, `typeOnly`, and `nodePrefix` (`node:` imports
-first). Named-element rules include `lowercase`, `elementName`, `nameSuffix`,
-and `specifierName`. The `separateBy` option inserts a blank line when any
-listed predicate is true; `separators.nodePrefix` separates `node:` imports from
-other imports. Combine separator predicates with `and(...rules)`,
-`or(...rules)`, `xor(left, right)`, and `not(rule)` from the main entry point.
-`and` and `or` accept any number of rules (including zero: `and()` always
-matches and `or()` never matches). For example,
-`separateBy: [and(separators.sideEffect, separators.packageSource)]` inserts a
-blank line only when both rules match the same boundary. To opt in to `node:`
-grouping while retaining the other default rules, configure:
-
-```ts
-import { defineConfig, inverse } from "jsr:@primp/primp";
-import {
-  directoryName,
-  namespaceImport,
-  nodePrefix,
-  packageSource,
-  sideEffect,
-  sourceName,
-} from "jsr:@primp/primp/rules/imports";
-import * as separators from "jsr:@primp/primp/rules/separators";
-
-export default defineConfig({
-  sortImports: [
-    nodePrefix,
-    inverse(sideEffect),
-    packageSource,
-    inverse(namespaceImport),
-    directoryName,
-    sourceName,
-  ],
-  separateBy: [
-    separators.nodePrefix,
-    separators.sideEffect,
-    separators.packageSource,
-    separators.namespace,
-  ],
-});
-```
+`pathDepth`, `directoryName`, `parentPath`, `sourcePath`, `declarationText`,
+`typeOnly`, and `nodePrefix` (`node:` imports first). Named-element rules
+include `lowercase`, `elementName`, `nameSuffix`, and `specifierName`. The
+`separateBy` option inserts a blank line when any listed predicate is true;
+`separators.nodePrefix` separates `node:` imports from other imports. Combine
+separator predicates with `and(...rules)`, `or(...rules)`, `xor(left, right)`,
+and `not(rule)` from the main entry point. `and` and `or` accept any number of
+rules (including zero: `and()` always matches and `or()` never matches). For
+example, `separateBy: [and(separators.sideEffect, separators.packageSource)]`
+inserts a blank line only when both rules match the same boundary.
 
 `bracketIndent` controls spaces inside single-line named imports;
 `trailingComma` controls multiline named imports; `breakFrom` opts into wrapping
